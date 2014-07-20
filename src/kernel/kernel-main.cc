@@ -180,16 +180,185 @@ void KernelMain::InitSystemAP() {
     GLOBAL_platform()->InitCurrentCPU();
 }
 
+
+// spaces and ending with a newline.
+void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::HandleScope scope(args.GetIsolate());
+  v8::String::Utf8Value val(args[0]->ToString());
+
+  printf("%s\n", *val);
+}
+
+void InitrdLoad(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::HandleScope scope(args.GetIsolate());
+  v8::String::Utf8Value val(args[0]->ToString());
+
+  rt::InitrdFile startup_file = GLOBAL_initrd()->Get(*val);
+  size_t size = startup_file.Size();
+  const uint8_t* data = startup_file.Data();
+
+  uint8_t place[size + 1];
+  place[size] = '\0';
+  memcpy(place, data, size);
+
+  v8::Handle<v8::String> file = v8::String::NewFromOneByte(args.GetIsolate(), place);
+
+  args.GetReturnValue().Set(file);
+}
+
+void Execute(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate *isolate = args.GetIsolate();
+  v8::Handle<v8::ObjectTemplate> global = v8::ObjectTemplate::New(args.GetIsolate());
+
+  global->Set(v8::String::NewFromUtf8(isolate, "print"),
+              v8::FunctionTemplate::New(isolate, Print));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "load"),
+              v8::FunctionTemplate::New(isolate, InitrdLoad));
+
+  v8::Handle<v8::Context> context = v8::Context::New(args.GetIsolate(), NULL, global);
+  {
+    v8::Context::Scope contextScope(context);
+
+    v8::Handle<v8::String> file = args[0]->ToString();
+    v8::Handle<v8::String> code = args[1]->ToString();
+    v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
+
+    // run script
+    script->Run();
+
+    v8::Handle<v8::Value> v = context->Global();
+    args.GetReturnValue().Set(v);
+  }
+
+}
+
+static void GlobalPropertyGetterCallback(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  v8::Isolate* isolate = args.GetIsolate();
+  v8::HandleScope scope(isolate);
+
+  // ContextifyContext* ctx =
+  //     Unwrap<ContextifyContext>(args.Data().As<Object>());
+
+  Handle<Object> obj = args.Data()->ToObject();
+
+  // Local<Object> sandbox = PersistentToLocal(isolate, ctx->sandbox_);
+  // Local<Value> rv = sandbox->GetRealNamedProperty(property);
+  // if (rv.IsEmpty()) {
+  //   Local<Object> proxy_global = PersistentToLocal(isolate, ctx->proxy_global_);
+  //   rv = proxy_global->GetRealNamedProperty(property);
+  // }
+  // if (!rv.IsEmpty() && rv == ctx->sandbox_) {
+  //   rv = PersistentToLocal(isolate, ctx->proxy_global_);
+  // }
+  args.GetReturnValue().Set(obj->Get(property));
+}
+
+static void MakeContext(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  v8::Isolate* isolate = args.GetIsolate();
+  HandleScope scope(isolate);
+
+  Handle<Object> obj = args[0]->ToObject();
+  Handle<ObjectTemplate> global = ObjectTemplate::New(isolate);
+
+  global->SetNamedPropertyHandler(GlobalPropertyGetterCallback,0,0,0,0,obj);
+
+  // run the context
+  Handle<Context> context = Context::New(isolate, NULL, global);
+  Handle<Array> names = obj->GetOwnPropertyNames();
+  for(uint32_t i=0; i<names->Length(); i++)
+  {
+    v8::String::Utf8Value sstr(names->Get(i)->ToString());
+    global->Set(names->Get(i)->ToString(), obj->Get(names->Get(i)));
+  }
+
+  v8::Handle<v8::String> str = args[1]->ToString();
+
+  {
+    v8::Context::Scope contextScope(context);
+
+    v8::Handle<v8::String> file = args[1]->ToString();
+    v8::Handle<v8::String> code = args[2]->ToString();
+    v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
+
+    // run script
+    v8::Handle<v8::Value> ret = script->Run();
+
+    args.GetReturnValue().Set(ret);
+  }
+
+
+  // put the context on an object as a hidden property
+  // we can retreive this property later
+  // Handle<ObjectTemplate> templ = ObjectTemplate::New(isolate);
+  // templ->SetInternalFieldCount(1);
+
+  // store the context on the object
+  // Handle<Object> obj = templ->NewInstance();
+  // obj->SetAlignedPointerInInternalField(0, static_cast<void *>(*context));
+  //
+  // args.GetReturnValue().Set(obj);
+}
+
+
 KernelMain::KernelMain(void* mbt) {
     uint32_t cpuid = Cpu::id();
 
-    if (cpuid != 0) {
-        InitSystemAP();
-    } else {
-        InitSystemBSP(mbt);
+    InitSystemBSP(mbt);
+
+    rt::InitrdFile startup_file = GLOBAL_initrd()->Get("/hello.js");
+
+    size_t size = startup_file.Size();
+    const uint8_t* data = startup_file.Data();
+
+    uint8_t place[size + 1];
+    place[size] = '\0';
+    memcpy(place, data, size);
+
+    v8::Isolate* isolate = v8::Isolate::New();
+    {
+        v8::Locker locker(isolate);
+
+        v8::Isolate::Scope isolateScope(isolate);
+        v8::HandleScope handleScope(isolate);
+
+        // create a global object templates to pass into the context
+        v8::Handle<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
+
+        global->Set(v8::String::NewFromUtf8(isolate, "print"),
+                    v8::FunctionTemplate::New(isolate, Print));
+
+        global->Set(v8::String::NewFromUtf8(isolate, "load"),
+                    v8::FunctionTemplate::New(isolate, InitrdLoad));
+
+        global->Set(v8::String::NewFromUtf8(isolate, "exec"),
+                    v8::FunctionTemplate::New(isolate, MakeContext));
+
+        v8::Handle<v8::Context> context = v8::Context::New(isolate, NULL, global);
+        {
+            // setup the context
+            v8::Context::Scope contextScope(context);
+
+            // compile the script from the initrd file
+            v8::Handle<v8::String> file = v8::String::NewFromUtf8(isolate, "hello.js");
+            v8::Handle<v8::String> code = v8::String::NewFromOneByte(isolate, place);
+            v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
+
+            // run script
+            v8::Handle<v8::Value> ret = script->Run();
+            v8::String::Utf8Value val(ret->ToString());
+
+            printf("Exit Main: %s\n", *val);
+        }
+
     }
 
-    GLOBAL_engines()->CpuEnter();
+    isolate->Dispose();
+
 }
 
 } // namespace rt
