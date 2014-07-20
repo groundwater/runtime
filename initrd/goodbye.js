@@ -2,7 +2,7 @@
 // make sure your bootstrapping code passes it in
 
 setImmediate(function(){
-  print("+immediate")
+  print("+immediate\n")
 })
 
-print("-immediate")
+print("-immediate\n")

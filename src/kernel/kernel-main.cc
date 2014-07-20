@@ -186,7 +186,7 @@ void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::HandleScope scope(args.GetIsolate());
   v8::String::Utf8Value val(args[0]->ToString());
 
-  printf("%s\n", *val);
+  printf("%s", *val);
 }
 
 void InitrdLoad(const v8::FunctionCallbackInfo<v8::Value>& args) {
@@ -291,19 +291,59 @@ static void MakeContext(const v8::FunctionCallbackInfo<v8::Value>& args) {
     args.GetReturnValue().Set(ret);
   }
 
-
-  // put the context on an object as a hidden property
-  // we can retreive this property later
-  // Handle<ObjectTemplate> templ = ObjectTemplate::New(isolate);
-  // templ->SetInternalFieldCount(1);
-
-  // store the context on the object
-  // Handle<Object> obj = templ->NewInstance();
-  // obj->SetAlignedPointerInInternalField(0, static_cast<void *>(*context));
-  //
-  // args.GetReturnValue().Set(obj);
 }
 
+// interrupt events
+class Event {
+public:
+  Event(uint8_t val, uint64_t num): value(val), number(num) {}
+
+  uint8_t value;
+  uint64_t number;
+};
+
+// this is our event queue
+static std::vector<Event> queue;
+
+static void Poll(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  if (queue.size() > 0) {
+    // there is an event in the queue
+    Event e = queue.back();
+    args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), e.value));
+    queue.pop_back();
+  } else {
+    // the event queue is empty
+    args.GetReturnValue().SetUndefined();
+  }
+
+}
+
+// JACOB: this runs in the interrupt handler
+extern "C" void irq_handler_any(uint64_t number) {
+    Cpu::DisableInterrupts();
+
+    uint8_t port = 0x60;
+    uint8_t value;
+
+    // get the key
+    asm volatile("inb %w1, %b0": "=a"(value): "d"(port));
+
+    // is allocating in a handler bad?
+
+    // push the event onto our event queue
+    Event e(value, number);
+    queue.push_back(e);
+
+    // https://github.com/runtimejs/runtime/blob/master/initrd/system/driver/ps2kbd.js#L155
+
+    // if we don't ack this, we won't get any other ones
+    RT_ASSERT(GLOBAL_platform());
+    GLOBAL_platform()->ackIRQ();
+
+    Cpu::EnableInterrupts();
+}
 
 KernelMain::KernelMain(void* mbt) {
     uint32_t cpuid = Cpu::id();
@@ -338,6 +378,9 @@ KernelMain::KernelMain(void* mbt) {
         global->Set(v8::String::NewFromUtf8(isolate, "exec"),
                     v8::FunctionTemplate::New(isolate, MakeContext));
 
+        global->Set(v8::String::NewFromUtf8(isolate, "poll"),
+                    v8::FunctionTemplate::New(isolate, Poll));
+
         v8::Handle<v8::Context> context = v8::Context::New(isolate, NULL, global);
         {
             // setup the context
@@ -358,6 +401,10 @@ KernelMain::KernelMain(void* mbt) {
     }
 
     isolate->Dispose();
+
+    while(true) {
+      Cpu::WaitPause();
+    }
 
 }
 

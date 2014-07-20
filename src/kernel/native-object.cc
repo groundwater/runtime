@@ -233,6 +233,7 @@ NATIVE_FUNCTION(NativesObject, Resources) {
     obj->Set(s_memory_range, (new ResourceMemoryRangeObject(th->template_cache(), memory_range))
         ->GetInstance());
 
+    // JACOB: io to pass into javascript
     ResourceHandle<ResourceIORange> io_range(new ResourceIORange(1, 0xffff));
     obj->Set(s_io_range, (new ResourceIORangeObject(th->template_cache(), io_range))
         ->GetInstance());
@@ -772,6 +773,7 @@ NATIVE_FUNCTION(ResourceIRQRangeObject, Irq) {
         that->obj_.get()->Irq(number & 0xff)))->GetInstance());
 }
 
+// JACOB: IRQ Handler
 NATIVE_FUNCTION(ResourceIRQObject, On) {
     PROLOGUE;
     USEARG(0);
@@ -784,6 +786,8 @@ NATIVE_FUNCTION(ResourceIRQObject, On) {
     RT_ASSERT(irq_number <= 0xff);
 
     uint32_t index { th->AddIRQData(v8::UniquePersistent<v8::Value>(iv8, arg0)) };
+
+    // JACOB: bind IRQ# to "thread" to persistent handle
     GLOBAL_platform()->irq_dispatcher().Bind(irq_number, thread, index);
 
     printf("[IRQ MANAGER] Bind %d (recv %d)\n", irq_number, index);
@@ -907,4 +911,3 @@ NATIVE_FUNCTION(AllocatorObject, AllocDMA) {
 }
 
 } // namespace rt
-

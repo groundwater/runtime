@@ -99,6 +99,7 @@ public:
         RT_ASSERT(engine_);
     }
 
+    // JACOB: dequeue irq messages
     ThreadMessagesVector TakeMessages() {
         ThreadMessagesVector s;
         {	NoInterrupsScope no_interrups;
@@ -126,6 +127,7 @@ public:
      * Put message into realm processing queue. Use only
      * for IRQ-context calls. It doesn't touch IRQ flag
      */
+    // JACOB: irq message
     void PushMessageIRQ(SystemContextIRQ irq_context, ThreadMessage* message) {
         ScopedLock lock(c_locker_);
         RT_ASSERT(message);
@@ -143,6 +145,8 @@ private:
     Status status_;
     Thread* thread_;
     Locker c_locker_;
+
+    // JACOB: irq messages are queued here
     ThreadMessagesVector messages_;
     DELETE_COPY_AND_ASSIGN(EngineThread);
 };

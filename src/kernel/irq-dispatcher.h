@@ -27,10 +27,12 @@ namespace rt {
  */
 class IRQBinding {
 public:
-    IRQBinding(ResourceHandle<EngineThread> thread, size_t recv_index)
-        :	thread_(thread), recv_index_(recv_index),
-            reusable_msg_(new ThreadMessage(ThreadMessage::Type::IRQ_RAISE,
-            ResourceHandle<EngineThread>(), TransportData(), nullptr, recv_index_)) {
+    // JACOB: thread, persistent handle
+    IRQBinding(ResourceHandle<EngineThread> thread, size_t recv_index) :
+      thread_(thread),
+      recv_index_(recv_index),
+      reusable_msg_(new ThreadMessage(ThreadMessage::Type::IRQ_RAISE, ResourceHandle<EngineThread>(), TransportData(), nullptr, recv_index_))
+    {
         reusable_msg_->MakeReusable();
     }
 
@@ -42,6 +44,8 @@ public:
     void Raise(SystemContextIRQ irq_context) const {
         RT_ASSERT(reusable_msg_);
         RT_ASSERT(reusable_msg_->reusable());
+
+        // JACOB: queue the message
         thread_.getUnsafe()->PushMessageIRQ(irq_context, reusable_msg_.get());
     }
 private:

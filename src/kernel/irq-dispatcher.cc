@@ -16,7 +16,10 @@
 
 namespace rt {
 
+// JACOB: this happens inside the interrupt handler
 void IrqDispatcher::Raise(SystemContextIRQ irq_context, uint8_t number) {
+    // JACOB: i don't think irq_context does anything
+    
     RT_ASSERT(0 == Cpu::id()); // IRQ raise restricted to CPU0
     RT_ASSERT(number < kIrqCount);
 

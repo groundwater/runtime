@@ -295,7 +295,7 @@ extrn	 exception_SX_event
 extrn	 exception_other_event
 
 extrn    irq_timer_event
-extrn    irq_keyboard_event
+extrn    irq_keyboard_event ; grab this from C++ side
 extrn    irq_other_event
 extrn    irq_handler_any
 
@@ -345,7 +345,7 @@ macro IrqHandler num
 {
     SaveState
     mov rdi, num
-    call irq_handler_any
+    call irq_handler_any ; call back into C++
     RestoreState
     iretq
 }

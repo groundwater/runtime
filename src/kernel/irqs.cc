@@ -132,18 +132,18 @@ EXPORT_EVENT void irq_keyboard_event(uint64_t* rip) {
     GLOBAL_platform()->HandleIRQ(irq_context, 1);
 }
 
-EXPORT_EVENT void irq_handler_any(uint64_t number) {
-    SystemContextDefaultIRQ irq_context {};
-
-    if (1 != number) {
-        // Log all IRQ except keyboard
-        printf("IRQ %d, cpu %d\n", number, rt::Cpu::id());
-    }
-
-    RT_ASSERT(number <= 0xff);
-    RT_ASSERT(GLOBAL_platform());
-    GLOBAL_platform()->HandleIRQ(irq_context, number & 0xff);
-}
+// EXPORT_EVENT void irq_handler_any(uint64_t number) {
+//     SystemContextDefaultIRQ irq_context {};
+//
+//     if (1 != number) {
+//         // Log all IRQ except keyboard
+//         printf("IRQ %d, cpu %d\n", number, rt::Cpu::id());
+//     }
+//
+//     RT_ASSERT(number <= 0xff);
+//     RT_ASSERT(GLOBAL_platform());
+//     GLOBAL_platform()->HandleIRQ(irq_context, number & 0xff);
+// }
 
 // TODO: fix this event
 EXPORT_EVENT void irq_timer_event() {

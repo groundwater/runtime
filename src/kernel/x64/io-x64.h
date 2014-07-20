@@ -22,6 +22,8 @@ namespace rt {
  */
 class IoPortsX64 {
 public:
+    // JACOB: here is where we read keyboard (and other) IO
+
     inline static void OutB(uint16_t port, uint8_t value) {
         asm volatile("outb %b0,%w1":: "a"(value), "d"(port));
     }

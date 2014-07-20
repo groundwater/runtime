@@ -67,9 +67,17 @@ public:
     /**
      * IRQ handler (requires IRQ context)
      */
+    // JACOB: this is called directly by the IRQ handler
     void HandleIRQ(SystemContextIRQ irq_context, uint8_t number) {
+
+        // JACOB: this gets called *inside* the interrupt handler
+        // the dispatcher might have multiple handlers waiting for it
         irq_dispatcher_.Raise(irq_context, number);
         platform_arch_.AckIRQ();
+    }
+
+    void ackIRQ() {
+      platform_arch_.AckIRQ();
     }
 
     /**
