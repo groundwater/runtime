@@ -6,3 +6,9 @@ setImmediate(function(){
 })
 
 print("-immediate")
+
+var x = "!"
+
+out = function(){
+  print("THIS IS OKAY" + x)
+}

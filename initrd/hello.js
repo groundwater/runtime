@@ -22,14 +22,18 @@ var filename = "/goodbye.js"
 var filedata = load(filename)
 
 // execute a new context on the next tick
-setImmediate(function(){
-  exec(context, filename, filedata)
-})
+var goodbye = exec(context, filename, filedata)
+goodbye()
 
 // uvrun :)
 var tick
 while(tick = events.shift()) {
   tick()
+}
+
+var p
+while(true) {
+  if (p = poll()) print(p)
 }
 
 // this will not occur until above context exist

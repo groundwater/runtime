@@ -72,6 +72,10 @@ public:
         platform_arch_.AckIRQ();
     }
 
+    void ackIRQ() {
+      platform_arch_.AckIRQ();
+    }
+
     /**
      * Print current stack backtrace
      */
