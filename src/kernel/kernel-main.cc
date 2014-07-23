@@ -186,7 +186,7 @@ void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::HandleScope scope(args.GetIsolate());
   v8::String::Utf8Value val(args[0]->ToString());
 
-  printf("%s\n", *val);
+  printf("%s", *val);
 }
 
 void InitrdLoad(const v8::FunctionCallbackInfo<v8::Value>& args) {

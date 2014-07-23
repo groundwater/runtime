@@ -1,40 +1,14 @@
 // print to console
 print("This better work")
 
-// load a file from initrd
-var hello = load("/hello.txt")
-
-// totally unguarded, make sure hello exists :)
-print(hello)
-
-// event queue
-var events = []
-var setImmediate = function(callback) {
-  events.push(callback)
+var ctx = {
+  print: print
 }
-
-// create a new global context object to pass ot a "child" context
-var context = {
-  print        : print,
-  setImmediate : setImmediate,
-}
-var filename = "/goodbye.js"
-var filedata = load(filename)
-
-// execute a new context on the next tick
-var goodbye = exec(context, filename, filedata)
-goodbye()
-
-// uvrun :)
-var tick
-while(tick = events.shift()) {
-  tick()
-}
+var key = exec(ctx, 'keyboard.js', load('/keyboard.js'))
 
 var p
 while(true) {
-  if (p = poll()) print(p)
+  if(p = poll()) {
+    print(key(p)||'')
+  }
 }
-
-// this will not occur until above context exist
-print("done")
