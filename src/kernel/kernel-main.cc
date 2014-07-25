@@ -275,7 +275,7 @@ KernelMain::KernelMain(void* mbt) {
 
     InitSystemBSP(mbt);
 
-    rt::InitrdFile startup_file = GLOBAL_initrd()->Get("/hello.js");
+    rt::InitrdFile startup_file = GLOBAL_initrd()->Get("/init.js");
 
     size_t size = startup_file.Size();
     const uint8_t* data = startup_file.Data();
@@ -315,7 +315,7 @@ KernelMain::KernelMain(void* mbt) {
             v8::Context::Scope contextScope(context);
 
             // compile the script from the initrd file
-            v8::Handle<v8::String> file = v8::String::NewFromUtf8(isolate, "hello.js");
+            v8::Handle<v8::String> file = v8::String::NewFromUtf8(isolate, "init.js");
             v8::Handle<v8::String> code = v8::String::NewFromOneByte(isolate, place);
             v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
 

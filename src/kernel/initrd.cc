@@ -44,7 +44,6 @@ const InitrdFile Initrd::GetByIndex(size_t index) {
 const InitrdFile Initrd::Get(const char* filename) {
     for (const InitrdFile& file : files_) {
         if (strcmp(filename, file.Name()) == 0) {
-            printf("[INITRD] Load %s len %d\n", file.Name(), file.Size());
             return file;
         }
     }
