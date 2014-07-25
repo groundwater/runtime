@@ -268,4 +268,3 @@ if config["build_host"]:
 env_base = EnvironmentCreate(build)
 SConscript('deps/SConscript', exports = 'env_base')
 BuildProject(env_base, mkinitrd)
-

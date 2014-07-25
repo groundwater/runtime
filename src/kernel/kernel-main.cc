@@ -264,14 +264,24 @@ public:
 };
 
 // this is our event queue
-static std::vector<Event> queue;
+static std::vector<uint64_t> queue;
+
+static void InB(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  uint8_t port = args[0]->ToNumber()->Value();
+  uint8_t value;
+
+  // get the input
+  asm volatile("inb %w1, %b0": "=a"(value): "d"(port));
+
+  args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), value));
+}
 
 static void Poll(const v8::FunctionCallbackInfo<v8::Value>& args) {
   using namespace v8;
   if (queue.size() > 0) {
     // there is an event in the queue
-    Event e = queue.back();
-    args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), e.value));
+    uint64_t e = queue.back();
+    args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), e));
     queue.pop_back();
   } else {
     // the event queue is empty
@@ -281,27 +291,10 @@ static void Poll(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 // JACOB: this runs in the interrupt handler
 extern "C" void irq_handler_any(uint64_t number) {
-    Cpu::DisableInterrupts();
-
-    uint8_t port = 0x60;
-    uint8_t value;
-
-    // get the key
-    asm volatile("inb %w1, %b0": "=a"(value): "d"(port));
-
-    // is allocating in a handler bad?
-
-    // push the event onto our event queue
-    Event e(value, number);
-    queue.push_back(e);
+    queue.push_back(number);
 
     // https://github.com/runtimejs/runtime/blob/master/initrd/system/driver/ps2kbd.js#L155
-
-    // if we don't ack this, we won't get any other ones
-    RT_ASSERT(GLOBAL_platform());
     GLOBAL_platform()->ackIRQ();
-
-    Cpu::EnableInterrupts();
 }
 
 KernelMain::KernelMain(void* mbt) {
@@ -339,6 +332,9 @@ KernelMain::KernelMain(void* mbt) {
 
         global->Set(v8::String::NewFromUtf8(isolate, "poll"),
                     v8::FunctionTemplate::New(isolate, Poll));
+
+        global->Set(v8::String::NewFromUtf8(isolate, "inb"),
+                    v8::FunctionTemplate::New(isolate, InB));
 
         v8::Handle<v8::Context> context = v8::Context::New(isolate, NULL, global);
         {

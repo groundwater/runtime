@@ -75,6 +75,8 @@ public:
     }
 
     void Startup() {
+        return;
+
         ResourceHandle<Process> p = process_manager().CreateProcess();
 
         RT_ASSERT(engines_execution_.size() > 0);
