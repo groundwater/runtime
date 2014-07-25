@@ -126,16 +126,6 @@ MultibootParseResult KernelMain::ParseMultiboot(void* mbt) {
     return MultibootParseResult(cmd);
 }
 
-
-void KernelMain::MakeV8Snapshot() {
-    char** argv = new char*[2];
-    argv[0] = new char[16];
-    argv[1] = new char[16];
-    strcpy(argv[0], "mksnapshot");
-    strcpy(argv[1], "snapshot");
-    mksnapshot_main(2, argv);
-}
-
 void KernelMain::InitSystemBSP(void* mbt) {
     // some musl libc init
     libc.threads_minus_1 = 0;
@@ -144,32 +134,15 @@ void KernelMain::InitSystemBSP(void* mbt) {
     MultibootParseResult parsed = ParseMultiboot(mbt);
     CONSTRUCT_GLOBAL_OBJECT(GLOBAL_platform, Platform, );		        // NOLINT
 
-    uint32_t cpus_found = GLOBAL_platform()->cpu_count();
+    // uint32_t cpus_found = GLOBAL_platform()->cpu_count();
     GLOBAL_platform()->InitCurrentCPU();
 
-    printf("Found %d cpus.\n", cpus_found);
+    // const char* cmdline = parsed.cmdline();
 
-    const char* cmdline = parsed.cmdline();
-    if (nullptr != strstr(cmdline, "test")) {
-        GLOBAL_boot_services()->logger()->SetMode(LoggerMode::TEST);
-        test::TestFramework tests;
-        tests.RunTests();
-        Cpu::HangSystem();
-    }
-
-    if (nullptr != strstr(cmdline, "snapshot")) {
-        printf("Generating snapshot...\n");
-        GLOBAL_boot_services()->logger()->SetMode(LoggerMode::SNAPSHOT);
-        MakeV8Snapshot();
-        GLOBAL_boot_services()->logger()->SetMode(LoggerMode::VIDEO);
-        printf("Snapshot done.\n\nNow you can shutdown the system.\n");
-        Cpu::HangSystem();
-    }
-
-    GLOBAL_boot_services()->logger()->EnableConsole();
+    // GLOBAL_boot_services()->logger()->EnableConsole();
     CONSTRUCT_GLOBAL_OBJECT(GLOBAL_engines, Engines, 1 /*cpus_found*/ );
     Cpu::EnableInterrupts();
-    GLOBAL_engines()->Startup();
+    // GLOBAL_engines()->Startup();
 
     // Uncomment to enable SMP
     // GLOBAL_platform()->StartCPUs();
