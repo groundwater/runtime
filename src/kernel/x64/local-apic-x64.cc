@@ -101,6 +101,7 @@ void LocalApicX64::InitCpu() {
     }
 
     // Set periodic mode for APIC timer
+    // JACOB: timer stuff
     registers_.Write(LocalApicRegister::TIMER_INITIAL_COUNT, init_count);
     registers_.Write(LocalApicRegister::TIMER, 32 | 0x20000);
     registers_.Write(LocalApicRegister::TIMER_DIVIDE_CONFIG, 0x03);

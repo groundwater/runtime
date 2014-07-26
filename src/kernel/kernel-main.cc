@@ -349,42 +349,42 @@ enum Registers {
 
 };
 
-static void GetRegister(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  using namespace v8;
-
-  // proper cast between double and uint64 so 324.0 -> 324
-  uint64_t reg = static_cast<uint64_t>(args[0]->ToNumber()->Value());
-  uint64_t foo;
-
-  // asm("mov SRC DST")
-
-  switch(reg){
-  case Registers::cr3:
-    asm volatile("mov %%cr3, %0": "=r"(foo));
-    break;
-  case Registers::rax:
-    asm volatile("mov %%rax, %0": "=r"(foo));
-    break;
-  // case Registers::eax:
-  //   asm volatile("mov %%eax, %0": "=r"(foo));
-  //   break;
-  case Registers::cs:
-    asm volatile("mov %%cs, %0": "=r"(foo));
-    break;
-  case Registers::ds:
-    asm volatile("mov %%ds, %0": "=r"(foo));
-    break;
-  case Registers::ss:
-    asm volatile("mov %%ss, %0": "=r"(foo));
-    break;
-  default:
-    args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Unknown Register"));
-    return;
-  }
-
-  if (foo)
-  args.GetReturnValue().Set(Number::New(args.GetIsolate(), foo));
-}
+// static void GetRegister(const v8::FunctionCallbackInfo<v8::Value>& args) {
+//   using namespace v8;
+//
+//   // proper cast between double and uint64 so 324.0 -> 324
+//   uint64_t reg = static_cast<uint64_t>(args[0]->ToNumber()->Value());
+//   uint64_t foo;
+//
+//   // asm("mov SRC DST")
+//
+//   switch(reg){
+//   case Registers::cr3:
+//     asm volatile("mov %%cr3, %0": "=r"(foo));
+//     break;
+//   case Registers::rax:
+//     asm volatile("mov %%rax, %0": "=r"(foo));
+//     break;
+//   // case Registers::eax:
+//   //   asm volatile("mov %%eax, %0": "=r"(foo));
+//   //   break;
+//   case Registers::cs:
+//     asm volatile("mov %%cs, %0": "=r"(foo));
+//     break;
+//   case Registers::ds:
+//     asm volatile("mov %%ds, %0": "=r"(foo));
+//     break;
+//   case Registers::ss:
+//     asm volatile("mov %%ss, %0": "=r"(foo));
+//     break;
+//   default:
+//     args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Unknown Register"));
+//     return;
+//   }
+//
+//   if (foo)
+//   args.GetReturnValue().Set(Number::New(args.GetIsolate(), foo));
+// }
 
 // JACOB: this runs in the interrupt handler
 extern "C" void irq_handler_any(uint64_t number) {
@@ -394,11 +394,54 @@ extern "C" void irq_handler_any(uint64_t number) {
     GLOBAL_platform()->ackIRQ();
 }
 
+static uint64_t ticks = 0;
+
+extern "C" void irq_timer_event() {
+    ticks++;
+
+    LocalApicRegisterAccessor registers((void*)0xfee00000);
+    registers.Write(LocalApicRegister::EOI, 0);
+}
+
+// // interrupt callback
+// void InterruptIsolate(v8::Isolate *isolate, void *data) {
+//   using namespace v8;
+//
+//   Handle<Function> fnc = *reinterpret_cast<Handle<Function> *>(data);
+//   Handle<Value> v;
+//
+//   fnc->Call(v, 0, {});
+// }
+//
+// // make an interruptable isolate
+// static void MakeInterruptIsolate(const v8::FunctionCallbackInfo<v8::Value>& args) {
+//   using namespace v8;
+//
+//   Handle<External> ext = Handle<External>::Cast(args[0]);
+//   Handle<Function> fnc = Handle<Function>::Cast(args[1]);
+//
+//   v8::Isolate* iso = reinterpret_cast<v8::Isolate *>(ext->Value());
+//
+//   iso->RequestInterrupt(InterruptIsolate, reinterpret_cast<void *>(&fnc));
+// }
+//
+static void Ticks(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  args
+    .GetReturnValue()
+    .Set(Number::New(args.GetIsolate(), ticks));
+}
+
+// this is the public kernel API
 v8::Handle<v8::ObjectTemplate> MakeGlobal(v8::Isolate *isolate) {
   v8::Handle<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
 
-  // global->Set(v8::String::NewFromUtf8(isolate, "print"),
-  //             v8::FunctionTemplate::New(isolate, Print));
+  // global->Set(v8::String::NewFromUtf8(isolate, "schedule"),
+  //             v8::FunctionTemplate::New(isolate, MakeInterruptIsolate));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "ticks"),
+              v8::FunctionTemplate::New(isolate, Ticks));
 
   global->Set(v8::String::NewFromUtf8(isolate, "eval"),
               v8::FunctionTemplate::New(isolate, Eval));
@@ -418,8 +461,8 @@ v8::Handle<v8::ObjectTemplate> MakeGlobal(v8::Isolate *isolate) {
   global->Set(v8::String::NewFromUtf8(isolate, "buff"),
               v8::FunctionTemplate::New(isolate, Buffer));
 
-  global->Set(v8::String::NewFromUtf8(isolate, "reg"),
-              v8::FunctionTemplate::New(isolate, GetRegister));
+  // global->Set(v8::String::NewFromUtf8(isolate, "reg"),
+  //             v8::FunctionTemplate::New(isolate, GetRegister));
 
   global->Set(v8::String::NewFromUtf8(isolate, "iso"),
               v8::FunctionTemplate::New(isolate, MakeIsolate));

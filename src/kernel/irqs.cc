@@ -133,15 +133,15 @@ EXPORT_EVENT void irq_keyboard_event(uint64_t* rip) {
 }
 
 // TODO: fix this event
-EXPORT_EVENT void irq_timer_event() {
-    rt::SystemContextTimerIRQ irq_context {};
-    RT_ASSERT(GLOBAL_engines());
-    GLOBAL_engines()->TimerTick(irq_context);
-
-    // TODO: fix hardcoded apic base address
-    LocalApicRegisterAccessor registers((void*)0xfee00000);
-    registers.Write(LocalApicRegister::EOI, 0);
-}
+// EXPORT_EVENT void irq_timer_event() {
+//     rt::SystemContextTimerIRQ irq_context {};
+//     RT_ASSERT(GLOBAL_engines());
+//     GLOBAL_engines()->TimerTick(irq_context);
+//
+//     // TODO: fix hardcoded apic base address
+//     LocalApicRegisterAccessor registers((void*)0xfee00000);
+//     registers.Write(LocalApicRegister::EOI, 0);
+// }
 
 EXPORT_EVENT void irq_other_event() {
     RT_ASSERT(!"!INT.OTHER");
