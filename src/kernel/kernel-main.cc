@@ -239,6 +239,21 @@ public:
 // this is our event queue
 static std::vector<uint64_t> queue;
 
+static void Buffer(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  uint64_t base = args[0]->ToNumber()->Value();
+  uint64_t size = args[1]->ToNumber()->Value();
+
+  Handle<ArrayBuffer> buff = ArrayBuffer::New(
+    args.GetIsolate(),
+    reinterpret_cast<void*>(base),
+    size
+  );
+
+  args.GetReturnValue().Set(buff);
+}
+
 static void InB(const v8::FunctionCallbackInfo<v8::Value>& args) {
   uint8_t port = args[0]->ToNumber()->Value();
   uint8_t value;
@@ -260,6 +275,59 @@ static void Poll(const v8::FunctionCallbackInfo<v8::Value>& args) {
     // the event queue is empty
     args.GetReturnValue().SetUndefined();
   }
+};
+
+enum Registers {
+
+  cr0 = 10,
+  cr1 = 11,
+  cr2 = 12,
+  cr3 = 13,
+
+  cs  = 20,
+  ds  = 30,
+  ss  = 40,
+
+  rax = 50,
+  eax = 51
+
+};
+
+static void GetRegister(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  // proper cast between double and uint64 so 324.0 -> 324
+  uint64_t reg = static_cast<uint64_t>(args[0]->ToNumber()->Value());
+  uint64_t foo;
+
+  // asm("mov SRC DST")
+
+  switch(reg){
+  case Registers::cr3:
+    asm volatile("mov %%cr3, %0": "=r"(foo));
+    break;
+  case Registers::rax:
+    asm volatile("mov %%rax, %0": "=r"(foo));
+    break;
+  // case Registers::eax:
+  //   asm volatile("mov %%eax, %0": "=r"(foo));
+  //   break;
+  case Registers::cs:
+    asm volatile("mov %%cs, %0": "=r"(foo));
+    break;
+  case Registers::ds:
+    asm volatile("mov %%ds, %0": "=r"(foo));
+    break;
+  case Registers::ss:
+    asm volatile("mov %%ss, %0": "=r"(foo));
+    break;
+  default:
+    args.GetIsolate()->ThrowException(v8::String::NewFromUtf8(args.GetIsolate(), "Unknown Register"));
+    return;
+  }
+
+  if (foo)
+  args.GetReturnValue().Set(Number::New(args.GetIsolate(), foo));
 }
 
 // JACOB: this runs in the interrupt handler
@@ -286,6 +354,8 @@ KernelMain::KernelMain(void* mbt) {
 
     v8::Isolate* isolate = v8::Isolate::New();
     {
+        using namespace v8;
+
         v8::Locker locker(isolate);
 
         v8::Isolate::Scope isolateScope(isolate);
@@ -308,6 +378,12 @@ KernelMain::KernelMain(void* mbt) {
 
         global->Set(v8::String::NewFromUtf8(isolate, "inb"),
                     v8::FunctionTemplate::New(isolate, InB));
+
+        global->Set(v8::String::NewFromUtf8(isolate, "buff"),
+                    v8::FunctionTemplate::New(isolate, Buffer));
+
+        global->Set(v8::String::NewFromUtf8(isolate, "reg"),
+                    v8::FunctionTemplate::New(isolate, GetRegister));
 
         v8::Handle<v8::Context> context = v8::Context::New(isolate, NULL, global);
         {
