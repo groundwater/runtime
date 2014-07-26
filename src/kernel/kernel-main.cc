@@ -62,6 +62,8 @@ int mksnapshot_main(int argc, char** argv);
 
 namespace rt {
 
+v8::Handle<v8::ObjectTemplate> MakeGlobal(v8::Isolate *isolate);
+
 void KernelMain::Initialize(void* mbt) {
     CONSTRUCT_GLOBAL_OBJECT(GLOBAL_boot_services, BootServices, );      // NOLINT
     CONSTRUCT_GLOBAL_OBJECT(GLOBAL_multiboot, Multiboot, mbt);			// NOLINT
@@ -190,6 +192,18 @@ static void GlobalPropertyGetterCallback(v8::Local<v8::String> property, const v
   args.GetReturnValue().Set(obj->Get(property));
 }
 
+static void Eval(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Handle<v8::String> code = args[0]->ToString();
+  v8::Handle<v8::String> file = args[1]->ToString();
+
+  v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
+
+  // run script
+  v8::Handle<v8::Value> ret = script->Run();
+
+  args.GetReturnValue().Set(ret);
+};
+
 static void MakeContext(const v8::FunctionCallbackInfo<v8::Value>& args) {
   using namespace v8;
 
@@ -224,6 +238,48 @@ static void MakeContext(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
     args.GetReturnValue().Set(ret);
   }
+
+};
+
+static void MakeIsolate(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  v8::Handle<v8::String> x = args[0]->ToString();
+  int l = x->Length();
+  uint16_t buff[l];
+  x->Write(buff, 0, l);
+
+  // create a new isolate
+  v8::Isolate* isolate = v8::Isolate::New();
+  {
+    v8::Locker locker(isolate);
+
+    v8::Isolate::Scope isolateScope(isolate);
+    v8::HandleScope handleScope(isolate);
+
+    // create a global object templates to pass into the context
+    v8::Handle<v8::ObjectTemplate> global = MakeGlobal(isolate);
+
+    v8::Handle<v8::Context> context = v8::Context::New(isolate, NULL, global);
+    {
+        // setup the context
+        v8::Context::Scope contextScope(context);
+
+        // compile the script from the initrd file
+        v8::Handle<v8::String> file = v8::String::NewFromUtf8(isolate, "init.js");
+        v8::Handle<v8::String> code = v8::String::NewFromTwoByte(isolate, buff);
+        v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
+
+        // run script
+        v8::Handle<v8::Value> ret = script->Run();
+        v8::String::Utf8Value val(ret->ToString());
+
+        // printf("Exit Main: %s\n", *val);
+    }
+
+  }
+
+  isolate->Dispose();
 
 }
 
@@ -338,6 +394,39 @@ extern "C" void irq_handler_any(uint64_t number) {
     GLOBAL_platform()->ackIRQ();
 }
 
+v8::Handle<v8::ObjectTemplate> MakeGlobal(v8::Isolate *isolate) {
+  v8::Handle<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
+
+  global->Set(v8::String::NewFromUtf8(isolate, "print"),
+              v8::FunctionTemplate::New(isolate, Print));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "eval"),
+              v8::FunctionTemplate::New(isolate, Eval));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "load"),
+              v8::FunctionTemplate::New(isolate, InitrdLoad));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "exec"),
+              v8::FunctionTemplate::New(isolate, MakeContext));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "poll"),
+              v8::FunctionTemplate::New(isolate, Poll));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "inb"),
+              v8::FunctionTemplate::New(isolate, InB));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "buff"),
+              v8::FunctionTemplate::New(isolate, Buffer));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "reg"),
+              v8::FunctionTemplate::New(isolate, GetRegister));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "iso"),
+              v8::FunctionTemplate::New(isolate, MakeIsolate));
+
+  return global;
+}
+
 KernelMain::KernelMain(void* mbt) {
     uint32_t cpuid = Cpu::id();
 
@@ -362,28 +451,7 @@ KernelMain::KernelMain(void* mbt) {
         v8::HandleScope handleScope(isolate);
 
         // create a global object templates to pass into the context
-        v8::Handle<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
-
-        global->Set(v8::String::NewFromUtf8(isolate, "print"),
-                    v8::FunctionTemplate::New(isolate, Print));
-
-        global->Set(v8::String::NewFromUtf8(isolate, "load"),
-                    v8::FunctionTemplate::New(isolate, InitrdLoad));
-
-        global->Set(v8::String::NewFromUtf8(isolate, "exec"),
-                    v8::FunctionTemplate::New(isolate, MakeContext));
-
-        global->Set(v8::String::NewFromUtf8(isolate, "poll"),
-                    v8::FunctionTemplate::New(isolate, Poll));
-
-        global->Set(v8::String::NewFromUtf8(isolate, "inb"),
-                    v8::FunctionTemplate::New(isolate, InB));
-
-        global->Set(v8::String::NewFromUtf8(isolate, "buff"),
-                    v8::FunctionTemplate::New(isolate, Buffer));
-
-        global->Set(v8::String::NewFromUtf8(isolate, "reg"),
-                    v8::FunctionTemplate::New(isolate, GetRegister));
+        v8::Handle<v8::ObjectTemplate> global = MakeGlobal(isolate);
 
         v8::Handle<v8::Context> context = v8::Context::New(isolate, NULL, global);
         {
