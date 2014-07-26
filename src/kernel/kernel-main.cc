@@ -157,12 +157,12 @@ void KernelMain::InitSystemAP() {
 
 
 // spaces and ending with a newline.
-void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
-  v8::HandleScope scope(args.GetIsolate());
-  v8::String::Utf8Value val(args[0]->ToString());
-
-  printf("%s", *val);
-}
+// void Print(const v8::FunctionCallbackInfo<v8::Value>& args) {
+//   v8::HandleScope scope(args.GetIsolate());
+//   v8::String::Utf8Value val(args[0]->ToString());
+//
+//   printf("%s", *val);
+// }
 
 void InitrdLoad(const v8::FunctionCallbackInfo<v8::Value>& args) {
   v8::HandleScope scope(args.GetIsolate());
@@ -397,8 +397,8 @@ extern "C" void irq_handler_any(uint64_t number) {
 v8::Handle<v8::ObjectTemplate> MakeGlobal(v8::Isolate *isolate) {
   v8::Handle<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
 
-  global->Set(v8::String::NewFromUtf8(isolate, "print"),
-              v8::FunctionTemplate::New(isolate, Print));
+  // global->Set(v8::String::NewFromUtf8(isolate, "print"),
+  //             v8::FunctionTemplate::New(isolate, Print));
 
   global->Set(v8::String::NewFromUtf8(isolate, "eval"),
               v8::FunctionTemplate::New(isolate, Eval));

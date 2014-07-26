@@ -8,12 +8,14 @@
     '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
   ];
 
-  return function key(code) {
+  function key(code) {
     if (code & 0x80) return;
 
     code &= 0x7F;
 
     return keymap[code];
   }
+
+  return key
 
 })()
