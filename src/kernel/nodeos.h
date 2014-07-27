@@ -239,7 +239,7 @@ namespace RuntimeNodeOS {
             Handle<Value> ret = script->Run();
             String::Utf8Value val(ret->ToString());
 
-            printf("Exit Main: %s\n", *val);
+           // printf("Exit Main: %s\n", *val);
         }
 
     }

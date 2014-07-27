@@ -27,12 +27,12 @@ public:
 
     __attribute__((__noreturn__)) void FatalError(const char* fmt, ...) {
         // Print error message
-        _logger.Printf(LogDataType::ERR, "Kernel error: ");
+        // _logger.Printf(LogDataType::ERR, "Kernel error: ");
         va_list va;
         va_start(va, fmt);
-        _logger.VPrintf(LogDataType::ERR, fmt, va);
+        // _logger.VPrintf(LogDataType::ERR, fmt, va);
         va_end(va);
-        _logger.Printf(LogDataType::ERR, "\n");
+        // _logger.Printf(LogDataType::ERR, "\n");
 
         // Hang system
         Cpu::HangSystem();
@@ -46,4 +46,3 @@ private:
 };
 
 } // namespace rt
-

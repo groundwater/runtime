@@ -84,7 +84,7 @@ void AcpiX64::Init() {
     }
 
     if (io_apics_.size() == 0) {
-        printf("Unable to find IO APIC to setup interrupts.\n");
+       // printf("Unable to find IO APIC to setup interrupts.\n");
         abort();
     }
 }
@@ -113,7 +113,7 @@ bool AcpiX64::ParseRSDP(void* p) {
         memcpy(&rsdt_addr, pt + 16, sizeof(uint32_t));
         break;
     default:
-        printf("ACPI unknown revision.\n");
+       // printf("ACPI unknown revision.\n");
         return false;
     }
 
@@ -217,13 +217,13 @@ void AcpiX64::StartCPUs() {
         local_apic_->SendApicStartup(cpu.local_apic_id, startup_vec);
         ++cpus_started;
 
-        printf("Starting #%d...\n", cpus_started);
+       // printf("Starting #%d...\n", cpus_started);
         while (trampoline.cpus_counter_value() != cpus_started) {
             rt::Cpu::WaitPause();
         }
     }
 
-    printf("Cpus: done.\n");
+   // printf("Cpus: done.\n");
 }
 
 void AcpiX64::InitIoApics() {

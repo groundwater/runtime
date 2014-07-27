@@ -20,7 +20,7 @@ namespace rt {
 
 _Unwind_Reason_Code TraceFn(_Unwind_Context *ctx, void *d) {
     int *depth = (int*)d;
-    printf("\t#%d: at %08x\n", *depth, _Unwind_GetIP(ctx));
+   // printf("\t#%d: at %08x\n", *depth, _Unwind_GetIP(ctx));
     (*depth)++;
     return _URC_NO_REASON;
 }

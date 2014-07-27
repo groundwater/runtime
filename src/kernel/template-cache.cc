@@ -42,7 +42,7 @@ v8::Local<v8::UnboundScript> TemplateCache::GetInitScript() {
     v8::EscapableHandleScope scope(iv8_);
     InitrdFile initfile =  GLOBAL_initrd()->Get("/system/init.js");
     if (initfile.IsEmpty()) {
-        printf("Unable to load /system/init.js file.");
+       // printf("Unable to load /system/init.js file.");
         abort();
     }
     v8::Local<v8::String> inits = v8::String::NewFromUtf8(iv8_,

@@ -29,7 +29,7 @@ void IoApicX64::Init() {
 
     if (id_reg != id_) {
         registers_.Write(IoApicRegister::ID, 0, id_ << 24);
-        printf("Patch APICID = %d, was = %d\n", id_, id_reg);
+       // printf("Patch APICID = %d, was = %d\n", id_, id_reg);
     }
 
 //    RT_ASSERT(id_reg == id_);

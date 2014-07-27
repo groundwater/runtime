@@ -64,22 +64,22 @@ void AcpiOsReleaseLock(ACPI_SPINLOCK Handle, ACPI_CPU_FLAGS Flags) {
 }
 
 void AcpiOsStall(UINT32 Microseconds) {
-    printf("[ACPICA] Stall %d microsec\n", Microseconds);
+    //// printf("[ACPICA] Stall %d microsec\n", Microseconds);
     GLOBAL_engines()->Sleep(Microseconds);
 }
 
 void AcpiOsSleep(UINT64 Milliseconds) {
-    printf("[ACPICA] Sleep %d ms\n", Milliseconds);
+    //// printf("[ACPICA] Sleep %d ms\n", Milliseconds);
     GLOBAL_engines()->Sleep(Milliseconds * 1000);
 }
 
 ACPI_STATUS AcpiOsInstallInterruptHandler(UINT32 InterruptLevel, ACPI_OSD_HANDLER Handler, void *Context) {
-    printf("[ACPICA] Install IRQ # %d\n", InterruptLevel);
+    //// printf("[ACPICA] Install IRQ # %d\n", InterruptLevel);
     return AE_OK;
 }
 
 ACPI_STATUS AcpiOsRemoveInterruptHandler(UINT32 InterruptNumber, ACPI_OSD_HANDLER Handler) {
-    printf("[ACPICA] Remove IRQ # %d\n", InterruptNumber);
+    //// printf("[ACPICA] Remove IRQ # %d\n", InterruptNumber);
     return AE_OK;
 }
 
@@ -283,7 +283,7 @@ ACPI_PHYSICAL_ADDRESS AcpiOsGetRootPointer() {
 }
 
 void AcpiOsPrintf(const char* Fmt, ...) {
-    printf("[ACPICA] :\n");
+    //// printf("[ACPICA] :\n");
     va_list Args;
     va_start (Args, Fmt);
     vprintf (Fmt, Args);

@@ -54,7 +54,7 @@ EXPORT_EVENT void exception_BR_event() {
 }
 
 EXPORT_EVENT void exception_UD_event(uint64_t rip, uint64_t cs) {
-    printf(" >>>> RIP = 0x%x, CS = 0x%x, CPU = %d\n", rip, cs, rt::Cpu::id());
+   // printf(" >>>> RIP = 0x%x, CS = 0x%x, CPU = %d\n", rip, cs, rt::Cpu::id());
     RT_ASSERT(!"!Ex_x86_64_UD");
     Cpu::HangSystem();
 }
@@ -85,8 +85,8 @@ EXPORT_EVENT void exception_SS_event() {
 }
 
 EXPORT_EVENT void exception_GP_event(uint64_t rip, uint64_t cs, uint64_t errcode, uint64_t p1) {
-    printf("[GP+] >>>> RIP = 0x%x, CS = 0x%x, ERRCODE = %d, RAX = 0x%x CPU = %d\n",
-           rip, cs, errcode, p1, rt::Cpu::id());
+   // printf("[GP+] >>>> RIP = 0x%x, CS = 0x%x, ERRCODE = %d, RAX = 0x%x CPU = %d\n",
+          //  rip, cs, errcode, p1, rt::Cpu::id());
 }
 
 EXPORT_EVENT void exception_PF_event(void* fault_address, uint64_t error_code) {
@@ -125,7 +125,7 @@ EXPORT_EVENT void exception_other_event() {
 
 EXPORT_EVENT void irq_keyboard_event(uint64_t* rip) {
     SystemContextDefaultIRQ irq_context {};
-    printf("KBD!\n");
+   // printf("KBD!\n");
     RT_ASSERT(GLOBAL_platform());
 
     // TODO: remove this handler

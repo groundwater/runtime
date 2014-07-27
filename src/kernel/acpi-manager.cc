@@ -47,7 +47,7 @@ bool AcpiManager::SetInterruptRoutingMode() {
     ACPI_STATUS ret;
     ret = AcpiEvaluateObject(ACPI_ROOT_OBJECT, method, &args, NULL);
     if (ACPI_FAILURE(ret)) {
-        printf("SetInterruptRoutingMode failed.");
+        //// printf("SetInterruptRoutingMode failed.");
         return false;
     }
     return true;
@@ -58,31 +58,31 @@ bool AcpiManager::Init() {
 
     ret = AcpiInitializeSubsystem();
     if (ACPI_FAILURE(ret)) {
-        printf("AcpiInitializeSubsystem failed.");
+        //// printf("AcpiInitializeSubsystem failed.");
         return false;
     }
 
     ret = AcpiInitializeTables(NULL, 16, FALSE);
     if (ACPI_FAILURE(ret)) {
-        printf("AcpiInitializeTables failed.");
+        //// printf("AcpiInitializeTables failed.");
         return false;
     }
 
     ret = AcpiLoadTables();
     if (ACPI_FAILURE(ret)) {
-        printf("AcpiInitializeTables failed.");
+        //// printf("AcpiInitializeTables failed.");
         return false;
     }
 
     ret = AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION);
     if (ACPI_FAILURE(ret)) {
-        printf("AcpiInitializeTables failed.");
+        //// printf("AcpiInitializeTables failed.");
         return false;
     }
 
     ret = AcpiInitializeObjects(ACPI_FULL_INITIALIZATION);
     if (ACPI_FAILURE(ret)) {
-        printf("AcpiInitializeTables failed.");
+        //// printf("AcpiInitializeTables failed.");
         return false;
     }
 

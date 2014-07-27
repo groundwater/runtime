@@ -18,12 +18,12 @@
 #include <printf.h>
 
 #define COMPARE_RESULTS(NAME) \
-    printf("Testing %s\n", NAME); \
-    printf("  host = %d, wf = %d\n", count_host, count_wf); \
-    printf("  host = %s, wf = %s\n", buf_host, buf_wf); \
+   // printf("Testing %s\n", NAME); \
+   // printf("  host = %d, wf = %d\n", count_host, count_wf); \
+   // printf("  host = %s, wf = %s\n", buf_host, buf_wf); \
     assert(count_host == count_wf); \
     assert(0 == strcmp(buf_host, buf_wf)); \
-    printf("OK: %s\n\n", NAME)
+   // printf("OK: %s\n\n", NAME)
 
 int main() {
     const char* s1 = "string1";

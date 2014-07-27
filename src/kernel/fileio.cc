@@ -56,7 +56,7 @@ void StdinWriteByte(char c) {
 }
 
 void V8LogWriteByte(char c) {
-    printf("%c", c);
+   // printf("%c", c);
 }
 
 void V8SnapshotWriteByte(char c) {

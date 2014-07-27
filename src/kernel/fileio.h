@@ -47,7 +47,7 @@ class FileIo {
 public:
     FILE* FOpen(const char* name) {
 
-        printf("open: %s\n", name);
+       // printf("open: %s\n", name);
 
         if (0 == strcmp(name, "v8.log")) {
             return v8_log();

@@ -134,14 +134,14 @@ NATIVE_FUNCTION(NativesObject, KernelLog) {
 
         uint8_t* buf = new uint8_t[len+1];
         s->WriteOneByte(buf, 0);
-        printf("%s", buf);
+       // printf("%s", buf);
         delete[] buf;
 
         if (i != argc - 1) {
-            printf(" ");
+           // printf(" ");
         }
     }
-    printf("\n");
+   // printf("\n");
     args.GetReturnValue().SetUndefined();
 }
 
@@ -292,7 +292,7 @@ NATIVE_FUNCTION(NativesObject, Debug) {
     PROLOGUE_NOTHIS;
 
     uint32_t val_2 = *reinterpret_cast<uint32_t*>(0xfebd0000);
-    printf("VAL_2 = %x\n", val_2);
+   // printf("VAL_2 = %x\n", val_2);
     Cpu::HangSystem();
 
 
@@ -478,7 +478,7 @@ NATIVE_FUNCTION(AcpiHandleObject, GetIrqRoutingTable) {
     ACPI_STATUS s = AcpiGetIrqRoutingTable(that->handle_, &buf);
 
     if (ACPI_FAILURE(s)) {
-        printf("FAILLLL %s.\n", AcpiFormatException(s));
+       // printf("FAILLLL %s.\n", AcpiFormatException(s));
         args.GetReturnValue().Set(v8::Array::New(iv8, 0));
     }
 
@@ -508,7 +508,7 @@ NATIVE_FUNCTION(AcpiHandleObject, GetIrqRoutingTable) {
         ACPI_HANDLE source;
         s = AcpiGetHandle(that->handle_, table->Source, &source);
         if (ACPI_FAILURE(s)) {
-            printf("Failed AcpiGetHandle %s\n", AcpiFormatException(s));
+           // printf("Failed AcpiGetHandle %s\n", AcpiFormatException(s));
             continue;
         }
 
@@ -516,7 +516,7 @@ NATIVE_FUNCTION(AcpiHandleObject, GetIrqRoutingTable) {
         char crs[] = "_CRS";
         s = AcpiWalkResources(source, crs, WalkResourcesCallback, &context);
         if (ACPI_FAILURE(s)) {
-            printf("Failed IRQ resource\n");
+           // printf("Failed IRQ resource\n");
             continue;
         }
     }
@@ -752,7 +752,7 @@ NATIVE_FUNCTION(ResourceIORangeObject, OffsetPort) {
         THROW_RANGE_ERROR("offsetPort: offset out of range");
     }
 
-    printf("[OFFSET PORT] base = %d, offset = %d, result = %d\n", io->first(), number, p);
+   // printf("[OFFSET PORT] base = %d, offset = %d, result = %d\n", io->first(), number, p);
 
     args.GetReturnValue().Set((new IoPortX64Object(th->template_cache(), p))->GetInstance());
 }
@@ -786,7 +786,7 @@ NATIVE_FUNCTION(ResourceIRQObject, On) {
     uint32_t index { th->AddIRQData(v8::UniquePersistent<v8::Value>(iv8, arg0)) };
     GLOBAL_platform()->irq_dispatcher().Bind(irq_number, thread, index);
 
-    printf("[IRQ MANAGER] Bind %d (recv %d)\n", irq_number, index);
+   // printf("[IRQ MANAGER] Bind %d (recv %d)\n", irq_number, index);
     args.GetReturnValue().SetUndefined();
 }
 
@@ -804,7 +804,7 @@ NATIVE_FUNCTION(ResourceMemoryBlockObject, DBG) {
     RT_ASSERT(ptr);
     RT_ASSERT(length > 0);
 
-    printf("[DEBUG] ptr = %p, len = %d\n", ptr, length);
+   // printf("[DEBUG] ptr = %p, len = %d\n", ptr, length);
 }
 
 NATIVE_FUNCTION(ResourceMemoryBlockObject, Buffer) {
@@ -894,7 +894,7 @@ NATIVE_FUNCTION(AllocatorObject, AllocDMA) {
     size_t size { GLOBAL_mem_manager()->page_size() };
     RT_ASSERT(size > 0);
 
-    printf("DMA allocated = %p, size %d\n", ptr, size);
+   // printf("DMA allocated = %p, size %d\n", ptr, size);
     // Clean DMA buffer
     memset(ptr, 0, size);
 

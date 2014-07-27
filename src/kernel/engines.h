@@ -87,7 +87,7 @@ public:
 
         rt::InitrdFile startup_file = GLOBAL_initrd()->Get("/system/kernel.js");
         if (startup_file.IsEmpty()) {
-            printf("Unable to load /system/kernel.js from initrd.\n");
+           // printf("Unable to load /system/kernel.js from initrd.\n");
             abort();
         }
 

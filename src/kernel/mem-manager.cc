@@ -132,6 +132,6 @@ extern "C" void free(void* ptr) {
 }
 
 extern "C" void allocator_abort() {
-    printf("Allocator fatal error, CPU = %d\n", rt::Cpu::id());
+   // printf("Allocator fatal error, CPU = %d\n", rt::Cpu::id());
     abort();
 }

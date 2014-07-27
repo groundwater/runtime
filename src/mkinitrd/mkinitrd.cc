@@ -152,7 +152,7 @@ int main(int argc, const char* argv[]) {
 
     if (0 == strcmp("-l", cmd)) {
         for (const std::string& file : files) {
-            printf("%s\n", &file.c_str()[root_len]);
+           // printf("%s\n", &file.c_str()[root_len]);
         }
         return 0;
     }

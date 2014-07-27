@@ -28,7 +28,7 @@ void Initrd::Init(const void* buf, size_t len) {
     while (!file.empty()) {
         uint64_t crc64 = CRC64::Compute(0, file.buf(), file.len());
         if (file.crc64() != crc64) {
-            printf("Initrd file %s invalid CRC64, loc %p, len %ul.\n", file.name(), file.buf(), file.len());
+           // printf("Initrd file %s invalid CRC64, loc %p, len %ul.\n", file.name(), file.buf(), file.len());
             break;
         }
         files_.push_back(InitrdFile(file.name(), file.len(), file.buf()));

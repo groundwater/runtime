@@ -83,7 +83,7 @@ class Logger {
     friend class LoggerPrinter;
     friend void putp_printer(void* p, char c, size_t offset);
 public:
-    int Printf(LogDataType type, const char* fmt, ...) {
+    int printf(LogDataType type, const char* fmt, ...) {
         va_list va;
         va_start(va, fmt);
         int count = PrintFormat(type, fmt, va);

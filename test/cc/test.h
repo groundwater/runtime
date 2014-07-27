@@ -70,12 +70,12 @@ public:
         if (!result) {
             ++_current_failed;
             PrintTestHeader();
-            printf("  Failed: %s:%d.\n", file, line);
+           // printf("  Failed: %s:%d.\n", file, line);
         }
     }
 
     void RunTests() {
-        printf("Testing...\n");
+       // printf("Testing...\n");
         for (const TestCase& cs : _cases) {
             _current_failed = 0;
             _current_name = cs.test();
@@ -84,14 +84,14 @@ public:
 
             if (nullptr == func) {
                 PrintTestHeader();
-                printf("  Invalid test function.\n");
+               // printf("  Invalid test function.\n");
                 continue;
             }
 
             func(this);
             if (_current_failed > 0) {
                 ++_total_failed;
-                printf("  Checks failed: %u.\n", _current_failed);
+               // printf("  Checks failed: %u.\n", _current_failed);
             } else {
                 ++_total_successful;
             }
@@ -99,7 +99,7 @@ public:
             ++_total_completed;
         }
 
-        printf("Done. Completed: %u, failed: %u.\n", _total_completed, _total_failed);
+       // printf("Done. Completed: %u, failed: %u.\n", _total_completed, _total_failed);
     }
 
     void PrintTestHeader() {
@@ -110,13 +110,13 @@ public:
         _current_header_print = true;
 
         if (nullptr != _describe_scope) {
-            printf("[%s] ", _describe_scope);
+           // printf("[%s] ", _describe_scope);
         }
 
         if (nullptr == _current_name) {
-            printf("it <null>\n");
+           // printf("it <null>\n");
         }
-        printf("it %s\n", _current_name);
+       // printf("it %s\n", _current_name);
 
     }
 

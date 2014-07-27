@@ -108,7 +108,7 @@ void Thread::Run() {
 
     if (context_.IsEmpty()) {
 
-        printf("++++++++++++++++ CONTEXT (X0)\n");
+       // printf("++++++++++++++++ CONTEXT (X0)\n");
         v8::Local<v8::Context> context = tpl_cache_->NewContext();
         context_ = std::move(v8::UniquePersistent<v8::Context>(iv8_, context));
     }
@@ -225,16 +225,16 @@ void Thread::Run() {
         v8::String::Utf8Value exception_str(ex);
         v8::Local<v8::Message> message = trycatch.Message();
         if (message.IsEmpty()) {
-            printf("Uncaught exception: %s\n", *exception_str);
+           // printf("Uncaught exception: %s\n", *exception_str);
         } else {
             v8::String::Utf8Value script_name(message->GetScriptResourceName());
             int linenum = message->GetLineNumber();
-            printf("Uncaught exception: %s:%i: %s\n", *script_name, linenum, *exception_str);
+           // printf("Uncaught exception: %s:%i: %s\n", *script_name, linenum, *exception_str);
         }
 
         v8::String::Utf8Value stack(trycatch.StackTrace());
         if (stack.length() > 0) {
-            printf("%s\n", *stack);
+           // printf("%s\n", *stack);
         }
     }
 

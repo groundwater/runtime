@@ -94,7 +94,7 @@ MultibootParseResult KernelMain::ParseMultiboot(void* mbt) {
     uint32_t mod_addr = s->module_addr;
 
     if (0 == mod_count || 0 == mod_addr) {
-        printf("Initrd boot module required. Check your bootloader configuration.\n");
+       // printf("Initrd boot module required. Check your bootloader configuration.\n");
         abort();
     }
 
@@ -119,7 +119,7 @@ MultibootParseResult KernelMain::ParseMultiboot(void* mbt) {
     size_t len = rd_end - rd_start;
 
     if (0 == len || len  > 128 * common::Constants::MiB) {
-        printf("Invalid initrd boot module.\n");
+       // printf("Invalid initrd boot module.\n");
         abort();
     }
 
