@@ -5,14 +5,17 @@
 namespace RuntimeNodeOS {
 
   using namespace v8;
+  using rt::InitrdFile;
+  using rt::LocalApicRegisterAccessor;
+  using rt::LocalApicRegister;
 
-  v8::Handle<v8::ObjectTemplate> MakeGlobal(v8::Isolate *isolate);
+  Handle<ObjectTemplate> MakeGlobal(Isolate *isolate);
 
-  void InitrdLoad(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    v8::HandleScope scope(args.GetIsolate());
-    v8::String::Utf8Value val(args[0]->ToString());
+  void InitrdLoad(const FunctionCallbackInfo<Value>& args) {
+    HandleScope scope(args.GetIsolate());
+    String::Utf8Value val(args[0]->ToString());
 
-    rt::InitrdFile startup_file = GLOBAL_initrd()->Get(*val);
+    InitrdFile startup_file = GLOBAL_initrd()->Get(*val);
     size_t size = startup_file.Size();
     const uint8_t* data = startup_file.Data();
 
@@ -20,38 +23,36 @@ namespace RuntimeNodeOS {
     place[size] = '\0';
     memcpy(place, data, size);
 
-    v8::Handle<v8::String> file = v8::String::NewFromOneByte(args.GetIsolate(), place);
+    Handle<String> file = String::NewFromOneByte(args.GetIsolate(), place);
 
     args.GetReturnValue().Set(file);
   };
 
-  static void GlobalPropertyGetterCallback(v8::Local<v8::String> property, const v8::PropertyCallbackInfo<v8::Value>& args) {
-    using namespace v8;
+  static void GlobalPropertyGetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& args) {
 
-    v8::Isolate* isolate = args.GetIsolate();
-    v8::HandleScope scope(isolate);
+    Isolate* isolate = args.GetIsolate();
+    HandleScope scope(isolate);
 
     Handle<Object> obj = args.Data()->ToObject();
 
     args.GetReturnValue().Set(obj->Get(property));
   };
 
-  static void Eval(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    v8::Handle<v8::String> code = args[0]->ToString();
-    v8::Handle<v8::String> file = args[1]->ToString();
+  static void Eval(const FunctionCallbackInfo<Value>& args) {
+    Handle<String> code = args[0]->ToString();
+    Handle<String> file = args[1]->ToString();
 
-    v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
+    Handle<Script> script = Script::Compile(code, file);
 
     // run script
-    v8::Handle<v8::Value> ret = script->Run();
+    Handle<Value> ret = script->Run();
 
     args.GetReturnValue().Set(ret);
   };
 
-  static void MakeContext(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    using namespace v8;
+  static void MakeContext(const FunctionCallbackInfo<Value>& args) {
 
-    v8::Isolate* isolate = args.GetIsolate();
+    Isolate* isolate = args.GetIsolate();
     HandleScope scope(isolate);
 
     Handle<Object> obj = args[0]->ToObject();
@@ -64,77 +65,75 @@ namespace RuntimeNodeOS {
     Handle<Array> names = obj->GetOwnPropertyNames();
     for(uint32_t i=0; i<names->Length(); i++)
     {
-      v8::String::Utf8Value sstr(names->Get(i)->ToString());
+      String::Utf8Value sstr(names->Get(i)->ToString());
       global->Set(names->Get(i)->ToString(), obj->Get(names->Get(i)));
     }
 
-    v8::Handle<v8::String> str = args[1]->ToString();
+    Handle<String> str = args[1]->ToString();
 
     {
-      v8::Context::Scope contextScope(context);
+      Context::Scope contextScope(context);
 
-      v8::Handle<v8::String> file = args[1]->ToString();
-      v8::Handle<v8::String> code = args[2]->ToString();
-      v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
+      Handle<String> file = args[1]->ToString();
+      Handle<String> code = args[2]->ToString();
+      Handle<Script> script = Script::Compile(code, file);
 
       // run script
-      v8::Handle<v8::Value> ret = script->Run();
+      Handle<Value> ret = script->Run();
 
       args.GetReturnValue().Set(ret);
     }
 
   };
 
-  static void CreateIsolate(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    v8::Isolate* isolate = v8::Isolate::New();
+  static void CreateIsolate(const FunctionCallbackInfo<Value>& args) {
+    Isolate* isolate = Isolate::New();
 
-    v8::Handle<v8::External> ext = v8::External::New(args.GetIsolate(), isolate);
+    Handle<External> ext = External::New(args.GetIsolate(), isolate);
 
     args.GetReturnValue().Set(ext);
   };
 
-  static void CreateContext(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    using namespace v8;
+  static void CreateContext(const FunctionCallbackInfo<Value>& args) {
 
-    v8::Isolate *iso = reinterpret_cast<v8::Isolate *>(Handle<External>::Cast(args[0])->Value());
+    Isolate *iso = reinterpret_cast<Isolate *>(Handle<External>::Cast(args[0])->Value());
 
     Handle<Context> ctx = Context::New(iso);
 
 
   };
 
-  static void MakeIsolate(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    using namespace v8;
+  static void MakeIsolate(const FunctionCallbackInfo<Value>& args) {
 
-    v8::Handle<v8::String> x = args[0]->ToString();
+    Handle<String> x = args[0]->ToString();
     int l = x->Length();
     uint16_t buff[l];
     x->Write(buff, 0, l);
 
     // create a new isolate
-    v8::Isolate* isolate = v8::Isolate::New();
+    Isolate* isolate = Isolate::New();
     {
-      v8::Locker locker(isolate);
+      Locker locker(isolate);
 
-      v8::Isolate::Scope isolateScope(isolate);
-      v8::HandleScope handleScope(isolate);
+      Isolate::Scope isolateScope(isolate);
+      HandleScope handleScope(isolate);
 
       // create a global object templates to pass into the context
-      v8::Handle<v8::ObjectTemplate> global = MakeGlobal(isolate);
+      Handle<ObjectTemplate> global = MakeGlobal(isolate);
 
-      v8::Handle<v8::Context> context = v8::Context::New(isolate, NULL, global);
+      Handle<Context> context = Context::New(isolate, NULL, global);
       {
           // setup the context
-          v8::Context::Scope contextScope(context);
+          Context::Scope contextScope(context);
 
           // compile the script from the initrd file
-          v8::Handle<v8::String> file = v8::String::NewFromUtf8(isolate, "init.js");
-          v8::Handle<v8::String> code = v8::String::NewFromTwoByte(isolate, buff);
-          v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
+          Handle<String> file = String::NewFromUtf8(isolate, "init.js");
+          Handle<String> code = String::NewFromTwoByte(isolate, buff);
+          Handle<Script> script = Script::Compile(code, file);
 
           // run script
-          v8::Handle<v8::Value> ret = script->Run();
-          v8::String::Utf8Value val(ret->ToString());
+          Handle<Value> ret = script->Run();
+          String::Utf8Value val(ret->ToString());
 
           // printf("Exit Main: %s\n", *val);
       }
@@ -148,8 +147,7 @@ namespace RuntimeNodeOS {
   // this is our event queue
   static std::vector<uint64_t> queue;
 
-  static void Buffer(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    using namespace v8;
+  static void Buffer(const FunctionCallbackInfo<Value>& args) {
 
     uint64_t base = args[0]->ToNumber()->Value();
     uint64_t size = args[1]->ToNumber()->Value();
@@ -163,22 +161,21 @@ namespace RuntimeNodeOS {
     args.GetReturnValue().Set(buff);
   };
 
-  static void InByte(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  static void InByte(const FunctionCallbackInfo<Value>& args) {
     uint64_t port = args[0]->ToNumber()->Value();
     uint8_t value;
 
     // read a byte from the specified I/O port
     asm volatile("inb %w1, %b0": "=a"(value): "d"(port));
 
-    args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), value));
+    args.GetReturnValue().Set(Number::New(args.GetIsolate(), value));
   };
 
-  static void Poll(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    using namespace v8;
+  static void Poll(const FunctionCallbackInfo<Value>& args) {
     if (queue.size() > 0) {
       // there is an event in the queue
       uint64_t e = queue.back();
-      args.GetReturnValue().Set(v8::Number::New(args.GetIsolate(), e));
+      args.GetReturnValue().Set(Number::New(args.GetIsolate(), e));
       queue.pop_back();
     } else {
       // the event queue is empty
@@ -199,12 +196,11 @@ namespace RuntimeNodeOS {
   extern "C" void irq_timer_event() {
       ticks++;
 
-      rt::LocalApicRegisterAccessor registers((void*)0xfee00000);
-      registers.Write(rt::LocalApicRegister::EOI, 0);
+      LocalApicRegisterAccessor registers((void*)0xfee00000);
+      registers.Write(LocalApicRegister::EOI, 0);
   };
 
-  static void Ticks(const v8::FunctionCallbackInfo<v8::Value>& args) {
-    using namespace v8;
+  static void Ticks(const FunctionCallbackInfo<Value>& args) {
 
     args
       .GetReturnValue()
@@ -212,59 +208,58 @@ namespace RuntimeNodeOS {
   };
 
   // this is the public kernel API
-  v8::Handle<v8::ObjectTemplate> MakeGlobal(v8::Isolate *isolate) {
-    v8::Handle<v8::ObjectTemplate> global = v8::ObjectTemplate::New(isolate);
+  Handle<ObjectTemplate> MakeGlobal(Isolate *isolate) {
+    Handle<ObjectTemplate> global = ObjectTemplate::New(isolate);
 
-    global->Set(v8::String::NewFromUtf8(isolate, "ticks"),
-                v8::FunctionTemplate::New(isolate, Ticks));
+    global->Set(String::NewFromUtf8(isolate, "ticks"),
+                FunctionTemplate::New(isolate, Ticks));
 
-    global->Set(v8::String::NewFromUtf8(isolate, "eval"),
-                v8::FunctionTemplate::New(isolate, Eval));
+    global->Set(String::NewFromUtf8(isolate, "eval"),
+                FunctionTemplate::New(isolate, Eval));
 
-    global->Set(v8::String::NewFromUtf8(isolate, "load"),
-                v8::FunctionTemplate::New(isolate, InitrdLoad));
+    global->Set(String::NewFromUtf8(isolate, "load"),
+                FunctionTemplate::New(isolate, InitrdLoad));
 
-    global->Set(v8::String::NewFromUtf8(isolate, "exec"),
-                v8::FunctionTemplate::New(isolate, MakeContext));
+    global->Set(String::NewFromUtf8(isolate, "exec"),
+                FunctionTemplate::New(isolate, MakeContext));
 
-    global->Set(v8::String::NewFromUtf8(isolate, "poll"),
-                v8::FunctionTemplate::New(isolate, Poll));
+    global->Set(String::NewFromUtf8(isolate, "poll"),
+                FunctionTemplate::New(isolate, Poll));
 
-    global->Set(v8::String::NewFromUtf8(isolate, "inb"),
-                v8::FunctionTemplate::New(isolate, InByte));
+    global->Set(String::NewFromUtf8(isolate, "inb"),
+                FunctionTemplate::New(isolate, InByte));
 
-    global->Set(v8::String::NewFromUtf8(isolate, "buff"),
-                v8::FunctionTemplate::New(isolate, Buffer));
+    global->Set(String::NewFromUtf8(isolate, "buff"),
+                FunctionTemplate::New(isolate, Buffer));
 
     return global;
   };
 
   void Main(uint8_t* place) {
-    v8::Isolate* isolate = v8::Isolate::New();
+    Isolate* isolate = Isolate::New();
     {
-        using namespace v8;
 
-        v8::Locker locker(isolate);
+        Locker locker(isolate);
 
-        v8::Isolate::Scope isolateScope(isolate);
-        v8::HandleScope handleScope(isolate);
+        Isolate::Scope isolateScope(isolate);
+        HandleScope handleScope(isolate);
 
         // create a global object templates to pass into the context
-        v8::Handle<v8::ObjectTemplate> global = MakeGlobal(isolate);
+        Handle<ObjectTemplate> global = MakeGlobal(isolate);
 
-        v8::Handle<v8::Context> context = v8::Context::New(isolate, NULL, global);
+        Handle<Context> context = Context::New(isolate, NULL, global);
         {
             // setup the context
-            v8::Context::Scope contextScope(context);
+            Context::Scope contextScope(context);
 
             // compile the script from the initrd file
-            v8::Handle<v8::String> file = v8::String::NewFromUtf8(isolate, "init.js");
-            v8::Handle<v8::String> code = v8::String::NewFromOneByte(isolate, place);
-            v8::Handle<v8::Script> script = v8::Script::Compile(code, file);
+            Handle<String> file = String::NewFromUtf8(isolate, "init.js");
+            Handle<String> code = String::NewFromOneByte(isolate, place);
+            Handle<Script> script = Script::Compile(code, file);
 
             // run script
-            v8::Handle<v8::Value> ret = script->Run();
-            v8::String::Utf8Value val(ret->ToString());
+            Handle<Value> ret = script->Run();
+            String::Utf8Value val(ret->ToString());
 
             printf("Exit Main: %s\n", *val);
         }
