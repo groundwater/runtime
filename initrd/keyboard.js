@@ -4,6 +4,9 @@
   // right-shift-up   0xb6
   // left-shift-down  0x2a
   // left-shift-up    0xaa
+  // delete-down      0x14
+  // delete-up        0x142
+  // up-arrow down=0xe0 up=0x48
 
   var shift = false
   var keymap = [
@@ -29,6 +32,9 @@
     } else if(code === 0xb6 || code === 0xaa) {
       // shift up
       shift = false
+    } else if(code === 0xe) {
+      // backspace
+      return '\b'
     }
 
     if (code & 0x80) return;

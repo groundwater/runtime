@@ -54,6 +54,13 @@ Screen.prototype.nextChar = function() {
   }
 }
 
+Screen.prototype.backspace = function () {
+  if (this.cursor[1] === 0) return
+
+  this.cursor[1]--
+  this.putChar(' ')
+}
+
 Screen.prototype.linearChar = function () {
   return this.cursor[0] * this.cols + this.cursor[1]
 }
@@ -75,6 +82,11 @@ Screen.prototype.returnOrClear = function (){
 
 Screen.prototype.startChar = function(){
   this.cursor[1] = 0
+}
+
+Screen.prototype.putChar = function (c) {
+  var pos = this.linearChar()
+  this.buffer[pos] = this.color << 8 | c.charCodeAt(0)
 }
 
 Screen.prototype.writeChar = function (c) {
@@ -115,7 +127,7 @@ function setTimeout(func,ival) {
   })
 }
 
-var buff = []
+var keybuffer = []
 
 // this is our event loop
 while(true) {
@@ -136,18 +148,24 @@ while(true) {
     var n = inb(0x60)
     var c = key(n)
 
-    if (c === '\n') {
+    if (c === '\b') {
+      if (keybuffer.length > 0) {
+        screen.backspace()
+        keybuffer.pop()
+      }
+    } else if (c === '\n') {
+      var line = keybuffer.join('')
       screen.returnOrClear()
       try {
-        screen.write((eval(buff.join('')) || '[undefined]').toString())
+        screen.write(String(eval(line)))
       } catch (e) {
         screen.write(e.toString())
       }
-      buff = []
+      keybuffer = []
       prompt()
     } else if (c) {
       screen.write(c)
-      buff.push(c)
+      keybuffer.push(c)
     }
   }
 }
