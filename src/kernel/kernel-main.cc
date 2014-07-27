@@ -241,6 +241,24 @@ static void MakeContext(const v8::FunctionCallbackInfo<v8::Value>& args) {
 
 };
 
+static void CreateIsolate(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  v8::Isolate* isolate = v8::Isolate::New();
+
+  v8::Handle<v8::External> ext = v8::External::New(args.GetIsolate(), isolate);
+
+  args.GetReturnValue().Set(ext);
+}
+
+static void CreateContext(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  v8::Isolate *iso = reinterpret_cast<v8::Isolate *>(Handle<External>::Cast(args[0])->Value());
+
+  Handle<Context> ctx = Context::New(iso);
+
+
+}
+
 static void MakeIsolate(const v8::FunctionCallbackInfo<v8::Value>& args) {
   using namespace v8;
 
@@ -403,28 +421,36 @@ extern "C" void irq_timer_event() {
     registers.Write(LocalApicRegister::EOI, 0);
 }
 
-// // interrupt callback
-// void InterruptIsolate(v8::Isolate *isolate, void *data) {
-//   using namespace v8;
-//
-//   Handle<Function> fnc = *reinterpret_cast<Handle<Function> *>(data);
-//   Handle<Value> v;
-//
-//   fnc->Call(v, 0, {});
-// }
-//
-// // make an interruptable isolate
-// static void MakeInterruptIsolate(const v8::FunctionCallbackInfo<v8::Value>& args) {
-//   using namespace v8;
-//
-//   Handle<External> ext = Handle<External>::Cast(args[0]);
-//   Handle<Function> fnc = Handle<Function>::Cast(args[1]);
-//
-//   v8::Isolate* iso = reinterpret_cast<v8::Isolate *>(ext->Value());
-//
-//   iso->RequestInterrupt(InterruptIsolate, reinterpret_cast<void *>(&fnc));
-// }
-//
+// interrupt callback
+void InterruptIsolate(v8::Isolate *isolate, void *data) {
+  using namespace v8;
+
+  Handle<Function> fnc = *reinterpret_cast<Handle<Function> *>(data);
+  Handle<Value> v;
+
+  fnc->Call(v, 0, {});
+}
+
+void TerminateIsolate(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  v8::Isolate *iso = reinterpret_cast<v8::Isolate *>(Handle<External>::Cast(args[0])->Value());
+
+  V8::TerminateExecution(iso);
+}
+
+// make an interruptable isolate
+static void MakeInterruptIsolate(const v8::FunctionCallbackInfo<v8::Value>& args) {
+  using namespace v8;
+
+  Handle<External> ext = Handle<External>::Cast(args[0]);
+  Handle<Function> fnc = Handle<Function>::Cast(args[1]);
+
+  v8::Isolate* iso = reinterpret_cast<v8::Isolate *>(ext->Value());
+
+  iso->RequestInterrupt(InterruptIsolate, reinterpret_cast<void *>(&fnc));
+}
+
 static void Ticks(const v8::FunctionCallbackInfo<v8::Value>& args) {
   using namespace v8;
 
@@ -439,6 +465,9 @@ v8::Handle<v8::ObjectTemplate> MakeGlobal(v8::Isolate *isolate) {
 
   // global->Set(v8::String::NewFromUtf8(isolate, "schedule"),
   //             v8::FunctionTemplate::New(isolate, MakeInterruptIsolate));
+
+  global->Set(v8::String::NewFromUtf8(isolate, "kill"),
+              v8::FunctionTemplate::New(isolate, TerminateIsolate));
 
   global->Set(v8::String::NewFromUtf8(isolate, "ticks"),
               v8::FunctionTemplate::New(isolate, Ticks));

@@ -7,7 +7,7 @@ var ctx = {
   // print: print
 }
 var key = exec(ctx, 'keyboard.js', load('/keyboard.js'))
-var cr3 = reg(13)
+// var cr3 = reg(13)
 
 // print('cr3: ' + cr3 + '\n')
 // print('rax: ' + reg(50) + '\n')
