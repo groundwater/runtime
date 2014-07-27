@@ -1,21 +1,5 @@
-// print to console
-// print("This better work\n")
+var key = exec({}, 'keyboard.js', load('/keyboard.js'))
 
-// iso(load('/iso.js'))
-
-var ctx = {
-  // print: print
-}
-var key = exec(ctx, 'keyboard.js', load('/keyboard.js'))
-// var cr3 = reg(13)
-
-// print('cr3: ' + cr3 + '\n')
-// print('rax: ' + reg(50) + '\n')
-
-// display 0x000A0000
-// length 0x1FFFF
-
-// var start = 0x18000 + 0x000A0000
 var start = 0xB8000
 var bytes = 2
 var cols  = 80
