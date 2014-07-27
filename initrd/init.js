@@ -133,7 +133,8 @@ while(true) {
   if(1 === poll()) {
 
     // map key number to ascii
-    var c = key(inb(0x60))
+    var n = inb(0x60)
+    var c = key(n)
 
     if (c === '\n') {
       screen.returnOrClear()
