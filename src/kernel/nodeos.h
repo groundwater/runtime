@@ -1,13 +1,38 @@
 #include <v8.h>
 #include <kernel/initrd.h>
-#include <kernel/platform.h>
 
 namespace RuntimeNodeOS {
 
   using namespace v8;
   using rt::InitrdFile;
-  using rt::LocalApicRegisterAccessor;
-  using rt::LocalApicRegister;
+  using std::vector;
+
+  //-------------------------------------------
+  // GLOBALS - because everyone loves globals
+  //-------------------------------------------
+
+  // cpu "ticks"
+  uint64_t ticks = 0;
+
+  // IRQ events
+  vector<uint64_t> queue;
+
+  //--------------------//
+  // INTERRUPT HANDLERS //
+  //--------------------//
+
+  extern "C" void irq_handler_any(uint64_t number) {
+      queue.push_back(number);
+
+      // https://github.com/runtimejs/runtime/blob/master/initrd/system/driver/ps2kbd.js#L155
+      *(volatile uint32_t*)(0xfee00000 + 0x00b0) = 0;
+  };
+
+  extern "C" void irq_timer_event() {
+      ticks++;
+
+      *(volatile uint32_t*)(0xfee00000 + 0x00b0) = 0;
+  };
 
   Handle<ObjectTemplate> MakeGlobal(Isolate *isolate);
 
@@ -28,8 +53,8 @@ namespace RuntimeNodeOS {
     args.GetReturnValue().Set(file);
   };
 
-  static void GlobalPropertyGetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& args) {
-
+  // callback used to initialize the global object in a new context
+  void GlobalPropertyGetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& args) {
     Isolate* isolate = args.GetIsolate();
     HandleScope scope(isolate);
 
@@ -38,7 +63,7 @@ namespace RuntimeNodeOS {
     args.GetReturnValue().Set(obj->Get(property));
   };
 
-  static void Eval(const FunctionCallbackInfo<Value>& args) {
+  void Eval(const FunctionCallbackInfo<Value>& args) {
     Handle<String> code = args[0]->ToString();
     Handle<String> file = args[1]->ToString();
 
@@ -50,7 +75,8 @@ namespace RuntimeNodeOS {
     args.GetReturnValue().Set(ret);
   };
 
-  static void MakeContext(const FunctionCallbackInfo<Value>& args) {
+  // run in a new context, passing in whatever you like to the global object
+  void RunInNewContext(const FunctionCallbackInfo<Value>& args) {
 
     Isolate* isolate = args.GetIsolate();
     HandleScope scope(isolate);
@@ -86,31 +112,9 @@ namespace RuntimeNodeOS {
 
   };
 
-  static void CreateIsolate(const FunctionCallbackInfo<Value>& args) {
-    Isolate* isolate = Isolate::New();
+  void RunInNewIsolate(const FunctionCallbackInfo<Value>& args) {
+    Handle<String> code = args[0]->ToString();
 
-    Handle<External> ext = External::New(args.GetIsolate(), isolate);
-
-    args.GetReturnValue().Set(ext);
-  };
-
-  static void CreateContext(const FunctionCallbackInfo<Value>& args) {
-
-    Isolate *iso = reinterpret_cast<Isolate *>(Handle<External>::Cast(args[0])->Value());
-
-    Handle<Context> ctx = Context::New(iso);
-
-
-  };
-
-  static void MakeIsolate(const FunctionCallbackInfo<Value>& args) {
-
-    Handle<String> x = args[0]->ToString();
-    int l = x->Length();
-    uint16_t buff[l];
-    x->Write(buff, 0, l);
-
-    // create a new isolate
     Isolate* isolate = Isolate::New();
     {
       Locker locker(isolate);
@@ -128,27 +132,21 @@ namespace RuntimeNodeOS {
 
           // compile the script from the initrd file
           Handle<String> file = String::NewFromUtf8(isolate, "init.js");
-          Handle<String> code = String::NewFromTwoByte(isolate, buff);
           Handle<Script> script = Script::Compile(code, file);
 
           // run script
           Handle<Value> ret = script->Run();
           String::Utf8Value val(ret->ToString());
-
-          // printf("Exit Main: %s\n", *val);
       }
 
     }
 
     isolate->Dispose();
-
   };
 
-  // this is our event queue
-  static std::vector<uint64_t> queue;
-
-  static void Buffer(const FunctionCallbackInfo<Value>& args) {
-
+  // create an array buffer mapped by arbitrary memory
+  // you can do real damage with this bad boy
+  void Buffer(const FunctionCallbackInfo<Value>& args) {
     uint64_t base = args[0]->ToNumber()->Value();
     uint64_t size = args[1]->ToNumber()->Value();
 
@@ -161,7 +159,7 @@ namespace RuntimeNodeOS {
     args.GetReturnValue().Set(buff);
   };
 
-  static void InByte(const FunctionCallbackInfo<Value>& args) {
+  void InByte(const FunctionCallbackInfo<Value>& args) {
     uint64_t port = args[0]->ToNumber()->Value();
     uint8_t value;
 
@@ -171,7 +169,7 @@ namespace RuntimeNodeOS {
     args.GetReturnValue().Set(Number::New(args.GetIsolate(), value));
   };
 
-  static void Poll(const FunctionCallbackInfo<Value>& args) {
+  void Poll(const FunctionCallbackInfo<Value>& args) {
     if (queue.size() > 0) {
       // there is an event in the queue
       uint64_t e = queue.back();
@@ -183,25 +181,7 @@ namespace RuntimeNodeOS {
     }
   };
 
-  // JACOB: this runs in the interrupt handler
-  extern "C" void irq_handler_any(uint64_t number) {
-      queue.push_back(number);
-
-      // https://github.com/runtimejs/runtime/blob/master/initrd/system/driver/ps2kbd.js#L155
-      GLOBAL_platform()->ackIRQ();
-  };
-
-  static uint64_t ticks = 0;
-
-  extern "C" void irq_timer_event() {
-      ticks++;
-
-      LocalApicRegisterAccessor registers((void*)0xfee00000);
-      registers.Write(LocalApicRegister::EOI, 0);
-  };
-
-  static void Ticks(const FunctionCallbackInfo<Value>& args) {
-
+  void Ticks(const FunctionCallbackInfo<Value>& args) {
     args
       .GetReturnValue()
       .Set(Number::New(args.GetIsolate(), ticks));
@@ -221,7 +201,7 @@ namespace RuntimeNodeOS {
                 FunctionTemplate::New(isolate, InitrdLoad));
 
     global->Set(String::NewFromUtf8(isolate, "exec"),
-                FunctionTemplate::New(isolate, MakeContext));
+                FunctionTemplate::New(isolate, RunInNewContext));
 
     global->Set(String::NewFromUtf8(isolate, "poll"),
                 FunctionTemplate::New(isolate, Poll));
@@ -235,26 +215,24 @@ namespace RuntimeNodeOS {
     return global;
   };
 
-  void Main(uint8_t* place) {
+  void Main(uint8_t* init) {
     Isolate* isolate = Isolate::New();
     {
 
+        // v8 boilerplate
         Locker locker(isolate);
-
         Isolate::Scope isolateScope(isolate);
         HandleScope handleScope(isolate);
 
-        // create a global object templates to pass into the context
+        // populate global object with C++ wrapped functions
         Handle<ObjectTemplate> global = MakeGlobal(isolate);
-
         Handle<Context> context = Context::New(isolate, NULL, global);
         {
-            // setup the context
             Context::Scope contextScope(context);
 
             // compile the script from the initrd file
             Handle<String> file = String::NewFromUtf8(isolate, "init.js");
-            Handle<String> code = String::NewFromOneByte(isolate, place);
+            Handle<String> code = String::NewFromOneByte(isolate, init);
             Handle<Script> script = Script::Compile(code, file);
 
             // run script
@@ -265,7 +243,6 @@ namespace RuntimeNodeOS {
         }
 
     }
-
     isolate->Dispose();
 
   };
