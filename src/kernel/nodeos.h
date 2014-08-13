@@ -215,7 +215,24 @@ namespace RuntimeNodeOS {
     return global;
   };
 
-  void Main(uint8_t* init) {
+  class ExternalInitrd : public String::ExternalStringResource {
+  public:
+    ExternalInitrd(const uint16_t* data, const size_t length):
+      _data(data),
+      _length(length)
+      {}
+    const uint16_t* data() const {
+      return _data;
+    }
+    size_t length() const {
+      return _length;
+    }
+  private:
+    const uint16_t* _data;
+    const size_t _length;
+  };
+
+  void Main(const uint16_t* start, const size_t length) {
     Isolate* isolate = Isolate::New();
     {
 
@@ -232,7 +249,11 @@ namespace RuntimeNodeOS {
 
             // compile the script from the initrd file
             Handle<String> file = String::NewFromUtf8(isolate, "init.js");
-            Handle<String> code = String::NewFromOneByte(isolate, init);
+            // Handle<String> code = String::NewFromOneByte(isolate, init);
+            ExternalInitrd ext(start, length);
+            Handle<String> code = String::NewExternal(isolate, &ext);
+
+            // Handle<String> code = String::
             Handle<Script> script = Script::Compile(code, file);
 
             // run script

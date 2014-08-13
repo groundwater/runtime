@@ -123,6 +123,8 @@ MultibootParseResult KernelMain::ParseMultiboot(void* mbt) {
         abort();
     }
 
+    // rd_start is beginning of initrd
+    // len is size
     GLOBAL_initrd()->Init(reinterpret_cast<void*>(rd_start), len);
     return MultibootParseResult(cmd);
 }
@@ -132,7 +134,8 @@ void KernelMain::InitSystemBSP(void* mbt) {
     libc.threads_minus_1 = 0;
 
     Initialize(mbt);
-    MultibootParseResult parsed = ParseMultiboot(mbt);
+    // MultibootParseResult parsed = ParseMultiboot(mbt);
+
     CONSTRUCT_GLOBAL_OBJECT(GLOBAL_platform, Platform, );		        // NOLINT
 
     // uint32_t cpus_found = GLOBAL_platform()->cpu_count();
@@ -160,16 +163,22 @@ KernelMain::KernelMain(void* mbt) {
 
     InitSystemBSP(mbt);
 
-    rt::InitrdFile startup_file = GLOBAL_initrd()->Get("/init.js");
+    // rt::InitrdFile startup_file = GLOBAL_initrd()->Get("/init.js");
+    MultibootStruct* s = reinterpret_cast<MultibootStruct*>(mbt);
+    uint32_t mod_addr = s->module_addr;
+    MultibootModuleEntry* m = reinterpret_cast<MultibootModuleEntry*>(mod_addr);
+    uint32_t rd_start = m->start;
+    uint32_t rd_end = m->end;
+    size_t len = rd_end - rd_start;
 
-    size_t size = startup_file.Size();
-    const uint8_t* data = startup_file.Data();
+    // size_t size = startup_file.Size();
+    const uint16_t* data = reinterpret_cast<uint16_t*>(rd_start);
+    //
+    // uint8_t place[size + 1];
+    // place[size] = '\0';
+    // memcpy(place, data, size);
 
-    uint8_t place[size + 1];
-    place[size] = '\0';
-    memcpy(place, data, size);
-
-    RuntimeNodeOS::Main(place);
+    RuntimeNodeOS::Main(data, len);
 }
 
 } // namespace rt
