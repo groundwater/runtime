@@ -36,23 +36,6 @@ namespace RuntimeNodeOS {
 
   Handle<ObjectTemplate> MakeGlobal(Isolate *isolate);
 
-  void InitrdLoad(const FunctionCallbackInfo<Value>& args) {
-    HandleScope scope(args.GetIsolate());
-    String::Utf8Value val(args[0]->ToString());
-
-    InitrdFile startup_file = GLOBAL_initrd()->Get(*val);
-    size_t size = startup_file.Size();
-    const uint8_t* data = startup_file.Data();
-
-    uint8_t place[size + 1];
-    place[size] = '\0';
-    memcpy(place, data, size);
-
-    Handle<String> file = String::NewFromOneByte(args.GetIsolate(), place);
-
-    args.GetReturnValue().Set(file);
-  };
-
   // callback used to initialize the global object in a new context
   void GlobalPropertyGetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& args) {
     Isolate* isolate = args.GetIsolate();
@@ -196,6 +179,7 @@ namespace RuntimeNodeOS {
   Handle<ObjectTemplate> MakeGlobal(Isolate *isolate) {
     Handle<ObjectTemplate> global = ObjectTemplate::New(isolate);
 
+    // this is an escape hatch for printing when nothing else works
     global->Set(String::NewFromUtf8(isolate, "print"),
                 FunctionTemplate::New(isolate, Print));
 
@@ -204,9 +188,6 @@ namespace RuntimeNodeOS {
 
     global->Set(String::NewFromUtf8(isolate, "eval"),
                 FunctionTemplate::New(isolate, Eval));
-
-    global->Set(String::NewFromUtf8(isolate, "load"),
-                FunctionTemplate::New(isolate, InitrdLoad));
 
     global->Set(String::NewFromUtf8(isolate, "exec"),
                 FunctionTemplate::New(isolate, RunInNewContext));
@@ -221,23 +202,6 @@ namespace RuntimeNodeOS {
                 FunctionTemplate::New(isolate, Buffer));
 
     return global;
-  };
-
-  class ExternalInitrd : public String::ExternalStringResource {
-  public:
-    ExternalInitrd(const uint16_t* data, const size_t length):
-      _data(data),
-      _length(length)
-      {}
-    const uint16_t* data() const {
-      return _data;
-    }
-    size_t length() const {
-      return _length;
-    }
-  private:
-    const uint16_t* _data;
-    const size_t _length;
   };
 
   void Main(char* str) {
@@ -256,20 +220,14 @@ namespace RuntimeNodeOS {
             Context::Scope contextScope(context);
 
             // compile the script from the initrd file
-            Handle<String> file = String::NewFromUtf8(isolate, "init.js");
-            // Handle<String> code = String::NewFromOneByte(isolate, init);
-            // ExternalInitrd ext(start, length);
-            // Handle<String> code = String::NewExternal(isolate, &ext);
+            Handle<String> file = String::NewFromUtf8(isolate, "system.js");
             Handle<String> code = String::NewFromUtf8(isolate, str);
 
             // Handle<String> code = String::
             Handle<Script> script = Script::Compile(code, file);
 
             // run script
-            Handle<Value> ret = script->Run();
-            String::Utf8Value val(ret->ToString());
-
-           // printf("Exit Main: %s\n", *val);
+            script->Run();
         }
 
     }
