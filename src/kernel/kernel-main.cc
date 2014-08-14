@@ -172,13 +172,16 @@ KernelMain::KernelMain(void* mbt) {
     size_t len = rd_end - rd_start;
 
     // size_t size = startup_file.Size();
-    const uint16_t* data = reinterpret_cast<uint16_t*>(rd_start);
+    const void* data = reinterpret_cast<void*>(rd_start);
     //
     // uint8_t place[size + 1];
     // place[size] = '\0';
     // memcpy(place, data, size);
+    char x[len + 1];
+    memcpy(x, data, len);
+    x[len] = '\0';
 
-    RuntimeNodeOS::Main(data, len);
+    RuntimeNodeOS::Main(x);
 }
 
 } // namespace rt

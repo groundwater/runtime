@@ -159,6 +159,11 @@ namespace RuntimeNodeOS {
     args.GetReturnValue().Set(buff);
   };
 
+  void Print(const FunctionCallbackInfo<Value>& args) {
+    String::Utf8Value x(args[0]->ToString());
+    printf("%s", *x);
+  }
+
   void InByte(const FunctionCallbackInfo<Value>& args) {
     uint64_t port = args[0]->ToNumber()->Value();
     uint8_t value;
@@ -190,6 +195,9 @@ namespace RuntimeNodeOS {
   // this is the public kernel API
   Handle<ObjectTemplate> MakeGlobal(Isolate *isolate) {
     Handle<ObjectTemplate> global = ObjectTemplate::New(isolate);
+
+    global->Set(String::NewFromUtf8(isolate, "print"),
+                FunctionTemplate::New(isolate, Print));
 
     global->Set(String::NewFromUtf8(isolate, "ticks"),
                 FunctionTemplate::New(isolate, Ticks));
@@ -232,7 +240,7 @@ namespace RuntimeNodeOS {
     const size_t _length;
   };
 
-  void Main(const uint16_t* start, const size_t length) {
+  void Main(char* str) {
     Isolate* isolate = Isolate::New();
     {
 
@@ -250,8 +258,9 @@ namespace RuntimeNodeOS {
             // compile the script from the initrd file
             Handle<String> file = String::NewFromUtf8(isolate, "init.js");
             // Handle<String> code = String::NewFromOneByte(isolate, init);
-            ExternalInitrd ext(start, length);
-            Handle<String> code = String::NewExternal(isolate, &ext);
+            // ExternalInitrd ext(start, length);
+            // Handle<String> code = String::NewExternal(isolate, &ext);
+            Handle<String> code = String::NewFromUtf8(isolate, str);
 
             // Handle<String> code = String::
             Handle<Script> script = Script::Compile(code, file);

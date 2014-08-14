@@ -1,1 +1,0 @@
-print("OTHER ISOLATE RUNNING\n")
