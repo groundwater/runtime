@@ -1,6 +1,12 @@
 #include <v8.h>
 #include <kernel/initrd.h>
 
+void ReportException(v8::Isolate* isolate, v8::TryCatch* handler);
+
+const char* ToCString(const v8::String::Utf8Value& value) {
+  return *value ? *value : "<string conversion failed>";
+}
+
 namespace RuntimeNodeOS {
 
   using namespace v8;
@@ -34,7 +40,55 @@ namespace RuntimeNodeOS {
       *(volatile uint32_t*)(0xfee00000 + 0x00b0) = 0;
   };
 
+  typedef struct SMAP_entry {
+    uint32_t BaseL; // base address QWORD
+    uint32_t BaseH;
+    uint32_t LengthL; // length QWORD
+    uint32_t LengthH;
+    uint32_t Type; // entry Type
+    uint32_t ACPI; // extended
+  }__attribute__((packed)) SMAP_entry_t;
+
+
+
   Handle<ObjectTemplate> MakeGlobal(Isolate *isolate);
+
+  void ReportException(v8::Isolate* isolate, v8::TryCatch* try_catch) {
+    v8::HandleScope handle_scope(isolate);
+    v8::String::Utf8Value exception(try_catch->Exception());
+    const char* exception_string = ToCString(exception);
+    v8::Handle<v8::Message> message = try_catch->Message();
+    if (message.IsEmpty()) {
+      // V8 didn't provide any extra information about this error; just
+      // print the exception.
+      fprintf(stderr, "%s\n", exception_string);
+    } else {
+      // Print (filename):(line number): (message).
+      v8::String::Utf8Value filename(message->GetScriptOrigin().ResourceName());
+      const char* filename_string = ToCString(filename);
+      int linenum = message->GetLineNumber();
+      fprintf(stderr, "%s:%i: %s\n", filename_string, linenum, exception_string);
+      // Print line of source code.
+      v8::String::Utf8Value sourceline(message->GetSourceLine());
+      const char* sourceline_string = ToCString(sourceline);
+      fprintf(stderr, "%s\n", sourceline_string);
+      // Print wavy underline (GetUnderline is deprecated).
+      int start = message->GetStartColumn();
+      for (int i = 0; i < start; i++) {
+        fprintf(stderr, " ");
+      }
+      int end = message->GetEndColumn();
+      for (int i = start; i < end; i++) {
+        fprintf(stderr, "^");
+      }
+      fprintf(stderr, "\n");
+      v8::String::Utf8Value stack_trace(try_catch->StackTrace());
+      if (stack_trace.length() > 0) {
+        const char* stack_trace_string = ToCString(stack_trace);
+        fprintf(stderr, "%s\n", stack_trace_string);
+      }
+    }
+  }
 
   // callback used to initialize the global object in a new context
   void GlobalPropertyGetterCallback(Local<String> property, const PropertyCallbackInfo<Value>& args) {
@@ -157,6 +211,45 @@ namespace RuntimeNodeOS {
     args.GetReturnValue().Set(Number::New(args.GetIsolate(), value));
   };
 
+  void OutByte(const FunctionCallbackInfo<Value>& args) {
+    uint64_t port = args[0]->ToNumber()->Value();
+    uint64_t val = args[1]->ToNumber()->Value();
+    uint8_t value;
+
+    // write a byte to the specified I/O port
+    asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+  };
+
+  void ReadMem(const FunctionCallbackInfo<Value>& args) {
+    SMAP_entry_t* buffer = (SMAP_entry_t*) 0x1000;
+    const int smap_size = 0x2000;
+
+    int maxentries = smap_size / sizeof(buffer);
+ 
+    int tick = 0;
+
+    uint32_t contID = 0;
+    int entries = 0, signature, bytes;
+    do 
+    {
+      asm volatile ("int $0x15" 
+          : "=a"(signature), "=c"(bytes), "=b"(contID)
+          : "a"(0xE820), "b"(contID), "c"(24), "d"(0x534D4150));
+      if (signature != 0x534D4150) {
+        entries = -1; // error
+        break;
+      }
+      if (bytes > 20 && (buffer->ACPI & 0x0001) == 0) {
+      } else {
+        buffer++;
+        entries++;
+      } 
+    } while (false);
+
+    args.GetReturnValue().Set(Number::New(args.GetIsolate(), buffer->LengthL + buffer->LengthH));
+  };
+
+
   void Poll(const FunctionCallbackInfo<Value>& args) {
     if (queue.size() > 0) {
       // there is an event in the queue
@@ -198,6 +291,12 @@ namespace RuntimeNodeOS {
     global->Set(String::NewFromUtf8(isolate, "inb"),
                 FunctionTemplate::New(isolate, InByte));
 
+    global->Set(String::NewFromUtf8(isolate, "outb"),
+                FunctionTemplate::New(isolate, OutByte));
+
+    global->Set(String::NewFromUtf8(isolate, "readmem"),
+                FunctionTemplate::New(isolate, ReadMem));
+
     global->Set(String::NewFromUtf8(isolate, "buff"),
                 FunctionTemplate::New(isolate, Buffer));
 
@@ -208,6 +307,7 @@ namespace RuntimeNodeOS {
     Isolate* isolate = Isolate::New();
     {
 
+        TryCatch try_catch;
         // v8 boilerplate
         Locker locker(isolate);
         Isolate::Scope isolateScope(isolate);
@@ -226,8 +326,26 @@ namespace RuntimeNodeOS {
             // Handle<String> code = String::
             Handle<Script> script = Script::Compile(code, file);
 
-            // run script
-            script->Run();
+            if(script.IsEmpty()) {
+              ReportException(isolate, &try_catch);
+            } else {
+              // run script
+              Handle<Value> result = script->Run();
+
+              if(result.IsEmpty()) {
+                assert(try_catch.HasCaught());
+                ReportException(isolate, &try_catch);
+              } else {
+                assert(!try_catch.HasCaught());
+                if (!result->IsUndefined()) {
+                  // If all went well and the result wasn't undefined then print
+                  // the returned value.
+                  v8::String::Utf8Value str(result);
+                  const char* cstr = ToCString(str);
+                  printf("%s\n", cstr);
+                }
+              }
+            }
         }
 
     }

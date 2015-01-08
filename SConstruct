@@ -39,9 +39,8 @@ config = {
             '-mno-3dnow',
             '-nodefaultlibs',
             '-nostartfiles',
-            '-Wall',
+            '-Wno-unused-function',
             '-Wextra',
-            '-Wno-unused',
             '-fno-exceptions',
             '-Wno-unused-parameter',
             '-D__runtime_js__',
@@ -61,6 +60,7 @@ config = {
             '-O3',
             '-fno-tree-vectorize',  # misaligned movdqa %xmm1,(%rsp) generated without this option and O3
             '-fno-rtti',
+            '-fpermissive',
             '-U__STRICT_ANSI__',
             '-DENABLE_DEBUGGER_SUPPORT',
             '-DENABLE_DISASSEMBLER',
