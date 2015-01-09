@@ -218,6 +218,8 @@ namespace RuntimeNodeOS {
 
     // write a byte to the specified I/O port
     asm volatile ( "outb %0, %1" : : "a"(val), "Nd"(port) );
+
+    args.GetReturnValue().Set(Number::New(args.GetIsolate(), value));
   };
 
   void ReadMem(const FunctionCallbackInfo<Value>& args) {
