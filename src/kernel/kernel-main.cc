@@ -30,7 +30,7 @@
 #include <kernel/irqs.h>
 
 // #include <test-framework.h>
-#include <kernel/nodeos.h>
+#include <kernel/runtimeos.h>
 
 #define DEFINE_GLOBAL_OBJECT(name, type)                       \
     static uint8_t placement_##name[sizeof(type)] alignas(16); \
@@ -181,7 +181,7 @@ KernelMain::KernelMain(void* mbt) {
     memcpy(x, data, len);
     x[len] = '\0';
 
-    RuntimeNodeOS::Main(x);
+    RuntimeOS::Main(x);
 }
 
 } // namespace rt
