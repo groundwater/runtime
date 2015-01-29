@@ -13,6 +13,8 @@ Screen.prototype.clear = function(){
   for(var i=0; i<b.length; i++){
     b[i] = 0
   }
+
+  this.setPosition(0,0)
 }
 
 Screen.prototype.nextChar = function() {
@@ -41,15 +43,27 @@ Screen.prototype.linearChar = function () {
 Screen.prototype.newline = function () {
   this.cursor[0]++
   this.cursor[1] = 0
+
+  if (this.cursor[0] >= this.rows - 1) {
+    var buf = this.buffer;
+    buf.set(buf.subarray(80))
+
+    for (var i=buf.length-this.cols;i<buf.length;i++) {
+      buf[i] = 0
+    }
+    this.cursor[0]--
+  }
 }
 
-Screen.prototype.returnOrClear = function (){
-  if (this.cursor[0] >= this.rows - 1) {
-    this.clear()
-    this.startChar()
-    this.cursor[0] = 0
-  } else {
-    this.returnChar()
+Screen.setPosition = function (x, y) {
+  this.cursor[0] = y
+  this.cursor[1] = x
+}
+
+Screen.getPosition = function () {
+  return {
+    row: this.cursor[0],
+    col: this.cursor[1]
   }
 }
 

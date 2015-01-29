@@ -13,7 +13,6 @@ var screen  = new Screen(display)
 screen.write('Welcome to Runtime :)')
 
 function prompt() {
-  screen.newline()
   screen.write(' >')
 }
 
