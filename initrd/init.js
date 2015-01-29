@@ -25,7 +25,10 @@ while(true) {
   if (poll())
   if (num = inb(0x60))
   if (key = map(num))
-  if (key === '\n') prompt()
+  if (key === '\n') {
+    screen.newline()
+    prompt()
+  }
   else if (key === '\b') screen.backspace()
   else if (key) screen.write(key)
   else screen.write('.')
