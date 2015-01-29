@@ -55,9 +55,9 @@ Screen.prototype.newline = function () {
   }
 }
 
-Screen.setPosition = function (x, y) {
-  this.cursor[0] = y
-  this.cursor[1] = x
+Screen.setPosition = function (row, col) {
+  this.cursor[0] = row
+  this.cursor[1] = col
 }
 
 Screen.getPosition = function () {
